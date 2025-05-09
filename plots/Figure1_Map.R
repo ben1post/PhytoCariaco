@@ -19,7 +19,7 @@ blon2 = 12
 
 
 # Get bathymetric data
-bat <- getNOAA.bathy(blat1, blat2, blon1, blon2, res = 1, keep = TRUE)
+bat <- getNOAA.bathy(blat1, blat2, blon1, blon2, res = 1, keep = TRUE, path="plots/")
 bat_xyz <- as.xyz(bat)
 bathy <- as_tibble(bat_xyz)
 bathy2 <- bathy %>% mutate(depth_bins = cut(V3, breaks = c(Inf, 0, -50, -100, -200, -500, -1000, 
