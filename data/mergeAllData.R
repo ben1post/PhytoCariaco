@@ -12,7 +12,9 @@ wind_ds$time_month = format(wind_ds$date, format="%m-%Y")
 wind_ds <- wind_ds %>% select(-date, -time)
 str(wind_ds)
 
-wind_ds <- wind_ds %>% mutate(u10_lag1=lag(u10), u10_lag2=lag(u10, n=2), u10_lag3=lag(u10, n=3), u10_lag4=lag(u10, n=4), u10_lag5=lag(u10, n=5), u10_lag6=lag(u10, n=6))
+wind_ds <- wind_ds %>% mutate(u10_lag1=lag(u10), u10_lag2=lag(u10, n=2), u10_lag3=lag(u10, n=3), u10_lag4=lag(u10, n=4), u10_lag5=lag(u10, n=5), u10_lag6=lag(u10, n=6),
+                              e_lag1=lag(e), e_lag2=lag(e, n=2), e_lag3=lag(e, n=3), e_lag4=lag(e, n=4), e_lag5=lag(e, n=5), e_lag6=lag(e, n=6),
+                              tp_lag1=lag(tp), tp_lag2=lag(tp, n=2), tp_lag3=lag(tp, n=3), tp_lag4=lag(tp, n=4), tp_lag5=lag(tp, n=5), tp_lag6=lag(tp, n=6))
 
 
 
