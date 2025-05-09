@@ -21,43 +21,38 @@ CARIACO <- readRDS("data/processed/CARIACO_EnvData_combined.rds")
 extractMatrixFix <- function(env_factors){
   ### Function to extract and match phytoplankton counts to environmental data for GF analysis
   ds_genus <- phyto_counts %>% 
-    filter(TaxonRank == "Genus" | TaxonRank == "Species") %>% 
+    filter(TaxonRank == "Genus" | TaxonRank == "Species")%>% 
     group_by(Genus, date) %>%
     summarise(Total = sum(counts))  %>%
     arrange(desc(date))
   
-  
   Mesh_genus <- pivot_wider(ds_genus, names_from = Genus, values_from = Total, values_fn = sum, values_fill = 0)
+  Mesh_genus$time_month =format(Mesh_genus$date, format="%m-%Y")
+  new_Mesh_genus = Mesh_genus %>% select(-date)
   
-  new_Mesh_genus = Mesh_genus
-  new_Mesh_genus$time_month =format(new_Mesh_genus$date, format="%m-%Y")
+  Env_dat <- CARIACO %>% 
+    select("time_month", all_of(env_factors))
   
-  CARIACO_dat_joined <- list(CARIACO, 
-                             new_Mesh_genus
-  ) %>% 
-    reduce(full_join, by = c("time_month"))
   
-  Matrix_02 <- CARIACO_dat_joined
+  CARIACO_dat_joined <- list(Env_dat, 
+                             new_Mesh_genus) %>% 
+    reduce(full_join, by = c("time_month")) %>% select(-time_month)
   
-  Matrix_03 <- Matrix_02 %>%
-    select("date", all_of(env_factors), length(names(CARIACO)):length(Matrix_02))
   
-  Comp_Matrix_04 <- Matrix_03[complete.cases(Matrix_03),]
-
-  nfac = length(env_factors)+3
+  Comp_Matrix <- CARIACO_dat_joined[complete.cases(CARIACO_dat_joined),]
   
-  Matrix_05_Env <- Comp_Matrix_04[,env_factors]
-  Matrix_05_Genus <- Comp_Matrix_04[,nfac:(nfac+length(Mesh_genus[-1])-1)]
+  Matrix_Env <- Comp_Matrix %>% select(all_of(env_factors))
+  Matrix_Genus <- Comp_Matrix %>% select(-all_of(env_factors))
   
-  return(list(Matrix_05_Env, Matrix_05_Genus))
+  return(list(Matrix_Env, Matrix_Genus))
 }
 
 
 # Collect list of environmental factors
-GF_env_factors_FULL = c("u10", "Isotherm_21", "NO3_merged",
+GF_env_factors_FULL = c("u10_lag2", "NO3_merged",
                         "PO4_merged", "SiO4_merged",
-                        "Salinity_bottles", "Temperature",
-                        "AMO_lag5", 
+                        "Salinity_bottles_lag2", "Temperature", "Isotherm_21",
+                        "AMO_lag2", 
                         "MEIv2_lag4")
 
 GF_inputs <- extractMatrixFix(GF_env_factors_FULL)
@@ -66,7 +61,7 @@ envGF <- GF_inputs[[1]]
 specGF <- GF_inputs[[2]]
 
 
-mo5_specGF<- specGF %>% select_if(colSums(. > 0) > 5)
+mo5_specGF<- specGF %>% select_if(colSums(. > 0) > 10)
 
 colnames(mo5_specGF) <- make.names(colnames(mo5_specGF))
 
@@ -219,6 +214,10 @@ leg.posn="topleft"
 legend=TRUE
 
 
+species <- names(gf$result)
+species
+
+
 linesdat = list()
 
 for (varX in imp.vars) {
@@ -227,30 +226,41 @@ for (varX in imp.vars) {
   xlim <- range(sapply(CU, "[[", "x"))
   ylim <- range(sapply(CU, "[[", "y"))
   
+  #plot(xlim,ylim,type='n',xlab=if(show.overall) "" else imp.vars.names[imp.vars==varX],ylab="",xaxt=xaxt)
   specdat = list()
-  
-  isub <- seq(1,length(CU[[species]]$x),len=pmin(500,length(CU[[species]]$x)))
-  
-  xvals = CU[[species]]$x[isub]
-  yvals = CU[[species]]$y[isub]
-  
-  columns = c("Predictor","Species","x","y")
-  testdf = data.frame(matrix(nrow=length(xvals), ncol=length(columns)))
-  names(testdf) <- columns
-  
-  testdf$x <- xvals
-  testdf$y <- yvals
-  testdf$Species <- species
-  testdf$Predictor <- varX
-  
-  specdat[[species]] = testdf
+  for(species in names(CU)) {
+    
+    isub <- seq(1,length(CU[[species]]$x),len=pmin(500,length(CU[[species]]$x)))
+    
+    #print(length(CU[[species]]$x[isub]))
+    #print(length(CU[[species]]$y[isub]))
+    xvals = CU[[species]]$x[isub]
+    yvals = CU[[species]]$y[isub]
+    
+    columns = c("Predictor","Species","x","y")
+    testdf = data.frame(matrix(nrow=length(xvals), ncol=length(columns)))
+    names(testdf) <- columns
+    
+    testdf$x <- xvals
+    testdf$y <- yvals
+    testdf$Species <- species
+    testdf$Predictor <- varX
+    
+    specdat[[species]] = testdf
+    
+    #lines(CU[[species]]$x[isub],CU[[species]]$y[isub],type='s',col=cols[species])
+  }
   
   linesdat[[varX]] = rbindlist(specdat)
   
+  
+  #added SJS 08/10/2009
   no.species<-length(names(cols))
   # only label most important species
   imp.sp <- sapply(CU, function(cu) max(cu$y))
   best <- order(-imp.sp)[1:min(leg.nspecies,length(imp.sp))]
+  #if(legend)
+  #    legend(x=leg.posn,legend=names(cols)[best],pch=rep(1,no.species)[best],col=cols[best],bty="n",cex=cex.legend, pt.lwd=2)
 }
 
 merged_spec_cumimp_df <- rbindlist(linesdat)
@@ -274,14 +284,12 @@ GenusMatched
 sum(specGF[GenusMatched$Genus])/ sum(specGF) # captures this proportion of counts!
 
 
-library(Polychrome)
-
 gg_color_hue <- function(n) {
   hues = seq(15, 375, length = n + 1)
   hcl(h = hues, l = 65, c = 100)[1:n]
 }
 
-genscolscale = gg_color_hue(length(unique(GenusMatched$FuncGroup)))
+genscolscale = brewer.pal(length(unique(GenusMatched$FuncGroup)), "Set1")
 gens = unique(GenusMatched$FuncGroup)
 names(genscolscale) <- gens
 genscolscale
@@ -316,7 +324,6 @@ specCumImp_Plot <- ggplot(data=merged_spec_cumimp_df)+geom_line(aes(x=x,y=y, col
 specCumImp_Plot
 
 # OVERALL CUM IMP PLOT
-# Overall Cum Imp Plot
 #
 # Combine species
 #
@@ -352,10 +359,52 @@ OVCumImpDat$Predictor = factor(OVCumImpDat$Predictor, levels=names(imp.w))
 
 
 # GET GENUS LEVEL PREDICTORS
+# code adapted from gradientForest source code:
+# convert density to its inverse
+inverse <- function(dens) {dens$y <- 1/dens$y; dens}
+
+# crude integral
+crude.integrate <- function(f) sum(f$y)*diff(f$x)[1]
+
+# normalize f(x) to f(x)/fbar
+normalize <- function(f) {
+  integral <- try(integrate(approxfun(f,rule=2),lower=min(f$x),upper=max(f$x))$value)
+  if (class(integral)=="try-error") integral <- crude.integrate(f)
+  f$y <- f$y/integral*diff(range(f$x)); 
+  f
+}
+
+getCU <- function(importance.df, Rsq, predictor) {
+  if (nrow(importance.df) == 0) {
+    return( list(x=0, y=0))
+  }
+  agg <- with(importance.df, agg.sum(improve.norm, list(split), sort.it=TRUE))
+  cum.split <- agg[,1]
+  height <- agg[,2]
+  
+  if (standardize & standardize_after) # crucial to normalize this case
+    dinv <- normalize(inverse(x$dens[[predictor]]))
+  else dinv <- inverse(x$dens[[predictor]]) # 
+  dinv.vals <- approx(dinv$x, dinv$y, cum.split, rule=2)$y
+  if (any(bad <- is.na(height))) {
+    cum.split <- cum.split[!bad]
+    height <- height[!bad]
+    dinv.vals <- dinv.vals[!bad]
+  }
+  if (standardize & !standardize_after) height <- height * dinv.vals
+  height <- height/sum(height)*Rsq
+  if (standardize & standardize_after) height <- height * dinv.vals
+  res <- list(x=cum.split, y=cumsum(height))
+}
+
+x <- gf
+option=2
+standardize=TRUE
+standardize_after=FALSE
+
 linesdat_genus = list()
 
 for (varX in imp.vars) {
-  print(varX)
   CU <- cumimp(gf, varX, "Species")
   xlim <- range(sapply(CU, "[[", "x"))
   ylim <- range(sapply(CU, "[[", "y"))
@@ -368,7 +417,7 @@ for (varX in imp.vars) {
     Genus <- GenusMatched %>% filter(FuncGroup==funcgroup) %>% pull(Genus)
     
     
-    Gen_CU <- getCU(subset(importance.df, spec %in% Genus | var == varX), mean(x$imp.rsq[varX, Genus]))
+    Gen_CU <- getCU(subset(importance.df, spec %in% Genus), mean(x$imp.rsq[varX, Genus]), varX)
     
     isub <- seq(1,length(Gen_CU$x),len=pmin(500,length(Gen_CU$x)))
     
@@ -385,10 +434,11 @@ for (varX in imp.vars) {
     testdf$Predictor <- varX
     
     FGdat[[funcgroup]] = testdf
+    
   }
   
   linesdat_genus[[varX]] = rbindlist(FGdat)
-}
+ }
 
 merged_genus_cumimp_df <- rbindlist(linesdat_genus)
 
@@ -398,11 +448,15 @@ str(OVCumImpDat$Predictor)
 
 merged_genus_cumimp_df$Predictor <- factor(merged_genus_cumimp_df$Predictor, levels=levels(OVCumImpDat$Predictor))
 
+
 options(repr.plot.width=10, repr.plot.height=12)
 
-overallCumImp_Plot <- ggplot(data=merged_genus_cumimp_df)+ geom_line(aes(x=x,y=y, col=FuncGroup), linetype = "dashed", alpha=1)+
-  geom_line(data=OVCumImpDat, aes(x=x,y=y))+
-  facet_wrap(~Predictor,scales = "free_x") + xlab("") + ylab("") + theme_cowplot(font_size=16) + scale_colour_manual(values = genscolscale) + guides(color="none")
+filt_vars = c("AMO_lag2", "MEIv2_lag4", "NO3_merged", "Temperature")
+# %>% filter(Predictor %in% filt_vars)
+
+overallCumImp_Plot <- ggplot(data=merged_genus_cumimp_df%>% filter(Predictor %in% filt_vars)) + geom_line(aes(x=x,y=y, col=FuncGroup), alpha=1, linewidth=1.1)+
+  geom_line(data=OVCumImpDat%>% filter(Predictor %in% filt_vars), aes(x=x,y=y), linewidth=1.5, , linetype = "22")+
+  facet_wrap(~Predictor,scales = "free_x") + xlab("Predictor") + ylab("Cumulative Importance") + theme_cowplot(font_size=20) + scale_colour_manual(values = genscolscale) + guides(color="none")
 overallCumImp_Plot
 
 
@@ -422,7 +476,7 @@ speccdata_df <- data.frame(Genus=factor(specnames, levels=specnames), importance
 n <- length(perf)
 title= expression(paste(R^2, " weighted importance"))
 
-specImp_plot <- ggplot(data=speccdata_df) + geom_point(aes(x=Genus,y=importance, col=Genus)) + theme_cowplot(font_size=10) + 
+specImp_plot <- ggplot(data=speccdata_df) + geom_point(aes(x=Genus,y=importance, col=Genus), size=3) + theme_cowplot(font_size=10) + 
   coord_flip() + ylab(title) + scale_colour_manual(values = speccolscale) + guides(color="none")
 
 
@@ -437,9 +491,9 @@ options(repr.plot.width=12, repr.plot.height=16)
 left_column = overallCumImp_Plot
 right_column = plot_grid(weightedImp_plot, specImp_plot,ColScaleLegend, ncol=3, rel_widths=c(1,1,0.1))
 
-GF_output_plot1 <- plot_grid(right_column, left_column, ncol=1, rel_heights = c(1.8,3))
+GF_output_plot1 <- plot_grid(right_column, left_column, ncol=1, rel_heights = c(1.8,2))
 
 GF_output_plot1
-#ggsave("GF_output_plot3.pdf",GF_output_plot1, width=12, height=16)
+#ggsave("GF_output_plot3_new.pdf",GF_output_plot1, width=12, height=16)
 
 

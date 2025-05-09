@@ -46,7 +46,7 @@ getym <- function(variable='') {
 
 # reformat and scale data variables for visualisation
 CARIACO$u10_negative = -CARIACO$u10
-CARIACO$Isotherm_21_negative = -CARIACO$Isotherm_21
+#CARIACO$Isotherm_21_negative = -CARIACO$Isotherm_21
 
 CARIACO$Chlorophyll_log = log1p(CARIACO$Chlorophyll)
 CARIACO$Abundance_Diatom_log = log1p(CARIACO$Abundance_Diatom)
@@ -58,17 +58,17 @@ CARIACO$Abundance_Nanoflagellate_log = log1p(CARIACO$Abundance_Nanoflagellate)
 range01 <- function(x){scale(x)}
 #{(x-min(x))/(max(x)-min(x))-0.5}
 
-vars <- c("MEIv2","AMO","u10_negative","Isotherm_21_negative","Salinity_bottles","Temperature",
+vars <- c("MEIv2","AMO","u10_negative","tp","e","Isotherm_21","Salinity_bottles","sst_10m",
           "NO3_merged","PO4_merged","SiO4_merged","Chlorophyll_log",
           "Abundance_Diatom_log","Abundance_Hapto_log","Abundance_Dino_log","Abundance_Cyano_log","Abundance_Nanoflagellate_log",
           "GenusRichness","Shannon_gen","Pielou_gen")
 
-renamed_vars <- c("MEIv2","AMO","-u wind 10m","-Isotherm 21","Salinity","Temperature",
-                  "NO3","PO4","SiO4","Chlorophyll",
+renamed_vars <- c("MEIv2","AMO","Wind speed","Precipitation","Evaporation","Isotherm Depth","Salinity","SST",
+                  "NO3","PO4","SiO4","Chlorophyll a",
                   "Diatoms","Haptophytes","Dinoflagellates","Cyanobacteria","Nanoflagellates",
                   "Richness","Shannon","Pielou")
 
-sources <- c("Climate","Climate","Climate","Physical","Physical","Physical",
+sources <- c("Climate","Climate","Climate","Climate","Climate","Physical","Physical","Physical",
              "Physical","Physical","Physical","Biological",
              "Biological","Biological","Biological","Biological","Biological",
              "Diversity","Diversity","Diversity")
@@ -89,10 +89,10 @@ head(full_yearly_dat)
 
 yearly_zscore = full_yearly_dat #%>% filter(year>=1996 & year<=2015)
 
-var_reorder = c("MEIv2","AMO","-u wind 10m","-Isotherm 21",
+var_reorder = c("MEIv2","AMO","Wind speed","Precipitation","Evaporation","SST","Isotherm Depth",
                 "Temperature","Salinity",
                 "NO3","PO4","SiO4", 
-                "Chlorophyll","Diatoms","Haptophytes",
+                "Chlorophyll a","Diatoms","Haptophytes",
                 "Dinoflagellates","Cyanobacteria",
                 "Nanoflagellates",
                 "Richness","Shannon","Pielou")
@@ -142,4 +142,4 @@ ggplot(yearly_zscore, aes(x=as.character(Year), y=ord.var, fill=zscore_raw))+ ge
     axis.line=element_blank())+
   xlim(as.character(1996:2015))
 
-#ggsave("PLOTZScores_updated.pdf", width=14, height=10)
+ggsave("plots/exports/Figure2_ZScores_v2.pdf", width=14, height=10)
