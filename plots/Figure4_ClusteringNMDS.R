@@ -1,5 +1,4 @@
 library(tidyverse)
-library(viridis)
 
 require(cowplot)
 library(ggdendro)
@@ -44,7 +43,6 @@ library("patchwork")
 options(repr.plot.width=12, repr.plot.height=14)
 
 FullNewPlotGrid <- DendroPLOT + TurnoverPLOT + NMDSplot + legenddd +
-  A + B + C + D + E + F + G + H + I + J + K + L +
   plot_layout(
     design="
     AACC
@@ -52,13 +50,22 @@ FullNewPlotGrid <- DendroPLOT + TurnoverPLOT + NMDSplot + legenddd +
     BBCC
     BBCC
     DDDD
-    EFGH
-    IJKL
-    MNOP
-    ", heights=c(1,1,1,1,0.5,1,1,1,1,1)) + plot_annotation(tag_levels="a") +
+    ", heights=c(1,1,1,1,0.5)) + plot_annotation(tag_levels="a") +
   theme(plot.tag = element_text(size = 20))
 
 FullNewPlotGrid
 
+ggsave("plots/exports/Figure4_ClusteringNMDS_v2.pdf",FullNewPlotGrid, width=12, height=7)
 
-ggsave("ClusteringCompPlot_NEW.pdf",FullNewPlotGrid, width=12, height=14)
+
+BottomPlotGrid <- A + B + C + D + E + F + G + H + I + J + K + L + M + N + O +
+  plot_layout(
+  design="
+    ABCDE
+    FGHIJ
+    KLMNO") + plot_annotation(tag_levels="a") +
+  theme(plot.tag = element_text(size = 20))
+  
+BottomPlotGrid
+
+ggsave("plots/exports/Figure5_ClustCompPlot_v2.pdf",BottomPlotGrid, width=13, height=7)

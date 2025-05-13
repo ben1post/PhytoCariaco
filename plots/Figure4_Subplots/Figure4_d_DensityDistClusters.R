@@ -12,6 +12,9 @@ CARIACO <- readRDS("data/processed/CARIACO_EnvData_combined.rds")
 
 CARIACO$date <- as.Date(paste(CARIACO$time_month, "-15", sep=""), format="%m-%Y-%d")
 
+# take negative of u10 (vector in u direction, mostly negative) as positive "wind speed":
+CARIACO$u10_negative = -CARIACO$u10
+
 extractGroups <- function(year1, year2, year3, year4){
   Group1 <- CARIACO %>%  
     filter(date >= as.Date(year1, format="%Y-%m-%d") & date <= as.Date(year2, format="%Y-%m-%d"))
@@ -73,84 +76,100 @@ B <- envdatmelt %>% filter(variable=="MEIv2") %>%
             palette = colpallete) + ggtitle("MEI v2") + theme(legend.position = "none") + xlab("[MEI v2]")
 
 
-C <- envdatmelt %>% filter(variable=="u10") %>%
+C <- envdatmelt %>% filter(variable=="u10_negative") %>%
   ggdensity(., x = "value",
             add = "median", rug = TRUE,
             color = "group", fill = "group",
-            palette = colpallete, legend="right") + ggtitle("10m u wind comp")+ theme(legend.position = "none") + xlab("[m/s]")
+            palette = colpallete, legend="right") + ggtitle("Wind speed")+ theme(legend.position = "none") + xlab("[m/s]")
 
-D <- envdatmelt %>% filter(variable=="Isotherm_21") %>%
+D <- envdatmelt %>% filter(variable=="tp") %>%
   ggdensity(., x = "value",
             add = "median", rug = TRUE,
             color = "group", fill = "group",
-            palette = colpallete) + ggtitle("Isotherm 21") + theme(legend.position = "none") + xlab("[m]")
+            palette = colpallete) + ggtitle("Precipitation") + theme(legend.position = "none") + xlab("[m Water/day]")
 
-
-
-prow1 = plot_grid(A, B, C,D, ncol=4,labels = c('d', 'e', 'f', 'g'))
-
-E <- envdatmelt %>% filter(variable=="Temperature") %>%
+E <- envdatmelt %>% filter(variable=="e") %>%
   ggdensity(., x = "value",
             add = "median", rug = TRUE,
             color = "group", fill = "group",
-            palette = colpallete) + ggtitle("Temperature") + theme(legend.position = "none") + xlab("[°C]")
+            palette = colpallete) + ggtitle("Evaporation") + theme(legend.position = "none") + xlab("[m Water/day]")
 
-F <- envdatmelt %>% filter(variable=="NO3_merged") %>%
+prow1 = plot_grid(A, B, C,D,E, ncol=5,labels = c('d', 'e', 'f', 'g', 'h'))
+
+
+F <- envdatmelt %>% filter(variable=="sst_10m") %>%
+  ggdensity(., x = "value",
+            add = "median", rug = TRUE,
+            color = "group", fill = "group",
+            palette = colpallete) + ggtitle("SST") + theme(legend.position = "none") + xlab("[°C]")
+
+G <- envdatmelt %>% filter(variable=="Isotherm_21") %>%
+  ggdensity(., x = "value",
+            add = "median", rug = TRUE,
+            color = "group", fill = "group",
+            palette = colpallete) + ggtitle("21°C Isotherm Depth") + theme(legend.position = "none") + xlab("[m]")
+
+H <- envdatmelt %>% filter(variable=="NO3_merged") %>%
   ggdensity(., x = "value",
             add = "median", rug = TRUE,
             color = "group", fill = "group",
             palette = colpallete) + ggtitle(expression(NO[3])) + theme(legend.position = "none") + xlab("[µM]")
 
-
-G <- envdatmelt %>% filter(variable=="PO4_merged") %>%
+I <- envdatmelt %>% filter(variable=="PO4_merged") %>%
   ggdensity(., x = "value",
             add = "median", rug = TRUE,
             color = "group", fill = "group",
             palette = colpallete, legend="right") + ggtitle(expression(PO[4]))+ theme(legend.position = "none") + xlab("[µM]")
 
-H <- envdatmelt %>% filter(variable=="SiO4_merged") %>%
+J <- envdatmelt %>% filter(variable=="SiO4_merged") %>%
   ggdensity(., x = "value",
             add = "median", rug = TRUE,
             color = "group", fill = "group",
             palette = colpallete) + ggtitle(expression(SiO[4])) + theme(legend.position = "none") + xlab("[µM]")
 
+prow2 = plot_grid(F, G, H, I, J, ncol=5, labels = c('i', 'j', 'k', 'l', 'm'))
 
 
-prow2 = plot_grid(E, F, G, H, ncol=4, labels = c('h', 'i', 'j', 'k'))
 
-I <- envdatmelt %>% filter(variable=="Salinity_bottles") %>%
+K <- envdatmelt %>% filter(variable=="Salinity_bottles") %>%
   ggdensity(., x = "value",
             add = "median", rug = TRUE,
             color = "group", fill = "group",
             palette = colpallete) + ggtitle("Salinity") + theme(legend.position = "none") + xlab("[PSU]")
 
-J <- envdatmelt %>% filter(variable=="GenusRichness") %>%
+L <- envdatmelt %>% filter(variable=="Chlorophyll") %>%
+  ggdensity(., x = "value",
+            add = "median", rug = TRUE,
+            color = "group", fill = "group",
+            palette = colpallete) + ggtitle("Chlorophyll a") + theme(legend.position = "none") + xlab("[µM]") + scale_x_log10()
+
+
+M <- envdatmelt %>% filter(variable=="GenusRichness") %>%
   ggdensity(., x = "value",
             add = "median", rug = TRUE,
             color = "group", fill = "group",
             palette = colpallete) + ggtitle("Genus Richness") + theme(legend.position = "none") + xlab("[Richness]")
 
-
-K <- envdatmelt %>% filter(variable=="Shannon_gen") %>%
+N <- envdatmelt %>% filter(variable=="Shannon_gen") %>%
   ggdensity(., x = "value",
             add = "median", rug = TRUE,
             color = "group", fill = "group",
             palette = colpallete, legend="right") + ggtitle("Shannon Index")+ theme(legend.position = "none") + xlab("[Shannon Index]")
 
-L <- envdatmelt %>% filter(variable=="Pielou_gen") %>%
+O <- envdatmelt %>% filter(variable=="Pielou_gen") %>%
   ggdensity(., x = "value",
             add = "median", rug = TRUE,
             color = "group", fill = "group",
             palette = colpallete, legend="right") + ggtitle("Pielou Index")+ theme(legend.position = "none") + xlab("[Pielou Index]")
 
 
-prow3 = plot_grid(I, J, K, L, ncol=4,labels = c('l', 'm', 'n', 'o'))
+prow3 = plot_grid(K, L, M, N, O, ncol=5,labels = c('n', 'o', 'p', 'q', 'r'))
 
 
 options(repr.plot.width=12, repr.plot.height=8)
 library(cowplot)
 
-plottt <- plot_grid(legenddd, prow1,prow2,prow3, rel_heights = c(0.2,1,1,1), ncol=1, align='v', axis='r')
+plottt <- plot_grid(legenddd, prow1,prow2,prow3, rel_heights = c(0.3,1,1,1), ncol=1, align='v', axis='r')
 
 #ggsave("ComparativePlot2.pdf",plottt, width=12, height=11)
 
@@ -169,13 +188,13 @@ testout = wilcox.test(value ~ group, data = envdatmelt %>% filter(variable=="AMO
 testout$p.value
 testout$statistic
 
-test_vars = c("AMO", "MEIv2", "u10", "Isotherm_21",
-              "Temperature", "NO3_merged", "PO4_merged", "SiO4_merged",
-              "Salinity_bottles", "GenusRichness", "Shannon_gen", "Pielou_gen")
+test_vars = c("AMO", "MEIv2", "u10", "tp", "e", "Isotherm_21",
+              "sst_10m", "NO3_merged", "PO4_merged", "SiO4_merged",
+              "Salinity_bottles", "Chlorophyll", "GenusRichness", "Shannon_gen", "Pielou_gen")
 
-test_vars_finalnames = c("AMO", "MEI v.2", "u-component 10 m wind speed", "Isotherm 21 °C",
-                         "Temperature", "NO3", "PO4", "SiO4",
-                         "Salinity", "Genus Richness", "Shannon Index", "Pielou Index")
+test_vars_finalnames = c("AMO", "MEI v.2", "Precipitation", "Evaporation", "u-component 10 m wind speed", "Isotherm 21 °C",
+                         "SST", "NO3", "PO4", "SiO4",
+                         "Salinity","Chlorophyll a",  "Genus Richness", "Shannon Index", "Pielou Index")
 
 test_out_w = list()
 test_out_p = list()
@@ -207,4 +226,11 @@ statistics_table_formatted <- statistics_table %>%
   select(Variable, W, p.value, Significance)
 kbl(statistics_table_formatted, "latex", booktabs = T, digits=3,
     caption="Wilcoxon sum rank test with continuity correction for variables between the two clusters. Values for in-situ data are interpolated across the top 100 meters for each individual monthly cruise sampling.")
+
+
+
+
+
+
+
 

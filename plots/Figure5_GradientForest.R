@@ -55,6 +55,13 @@ GF_env_factors_FULL = c("u10_lag2", "NO3_merged",
                         "AMO_lag2", 
                         "MEIv2_lag4")
 
+# Collect list of environmental factors
+GF_env_factors_FULL = c("u10_lag1", "NO3_merged",
+                        "PO4_merged", "SiO4_merged", "tp_lag2", "e_lag2",
+                        "Salinity_bottles", "sst_10m", "Isotherm_21",
+                        "AMO_lag5", 
+                        "MEIv2_lag3")
+
 GF_inputs <- extractMatrixFix(GF_env_factors_FULL)
 
 envGF <- GF_inputs[[1]]
@@ -374,6 +381,27 @@ normalize <- function(f) {
   f
 }
 
+namenames <- function(x) structure(x,names=x)
+
+`agg.sum` <- function(x, by, sort.it = F)
+{
+  if(!is.data.frame(by))
+    by <- data.frame(by)
+  if(sort.it) {
+    ord <- do.call("order", unname(by))
+    x <- x[ord]
+    by <- by[ord,  , drop=F]
+  }
+  logical.diff <- function(group)
+    group[-1] != group[ - length(group)]
+  change <- logical.diff(by[[1]])
+  for(i in seq(along = by)[-1])
+    change <- change | logical.diff(by[[i]])
+  by <- by[c(T, change),  , drop = F]
+  by$x <- diff(c(0, cumsum(x)[c(change, T)]))
+  by
+}
+
 getCU <- function(importance.df, Rsq, predictor) {
   if (nrow(importance.df) == 0) {
     return( list(x=0, y=0))
@@ -451,7 +479,7 @@ merged_genus_cumimp_df$Predictor <- factor(merged_genus_cumimp_df$Predictor, lev
 
 options(repr.plot.width=10, repr.plot.height=12)
 
-filt_vars = c("AMO_lag2", "MEIv2_lag4", "NO3_merged", "Temperature")
+filt_vars = c("AMO_lag5", "sst_10m", "NO3_merged", "MEIv2_lag3")
 # %>% filter(Predictor %in% filt_vars)
 
 overallCumImp_Plot <- ggplot(data=merged_genus_cumimp_df%>% filter(Predictor %in% filt_vars)) + geom_line(aes(x=x,y=y, col=FuncGroup), alpha=1, linewidth=1.1)+
@@ -494,6 +522,6 @@ right_column = plot_grid(weightedImp_plot, specImp_plot,ColScaleLegend, ncol=3, 
 GF_output_plot1 <- plot_grid(right_column, left_column, ncol=1, rel_heights = c(1.8,2))
 
 GF_output_plot1
-#ggsave("GF_output_plot3_new.pdf",GF_output_plot1, width=12, height=16)
+ggsave("plots/exports/Figure6_GF_output_FINAL_v2.pdf",GF_output_plot1, width=12, height=16)
 
 

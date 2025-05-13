@@ -68,7 +68,7 @@ Depth_Dat$month <- format(Depth_Dat$date, format="%m")
 
 # add season column
 nm2 <- setNames( c(rep(c("Upwelling", "Rainy"),
-                       each = 5),"Rainy","Rainy"), c("12","01","02","03","04","05","06","07","08","09","10","11"))
+                       each = 6)), c("12","01","02","03","04","05","06","07","08","09","10","11"))
 # add columns to data frame 
 Depth_Dat$year = format(Depth_Dat$date, "%Y")
 Depth_Dat$season = factor(nm2[Depth_Dat$month], levels = c("Upwelling", "Rainy"))

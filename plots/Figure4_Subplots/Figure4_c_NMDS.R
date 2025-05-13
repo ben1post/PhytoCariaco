@@ -34,6 +34,8 @@ Mesh_genus_noemtpyrows = Mesh_genus[rowSums(Mesh_genus[, -1])>0, ]
 CARIACO <- readRDS("data/processed/CARIACO_EnvData_combined.rds")
 
 
+CARIACO$u10_negative = -CARIACO$u10
+
 new_Mesh_genus = Mesh_genus_noemtpyrows
 new_Mesh_genus$time_month =format(new_Mesh_genus$date, format="%m-%Y")
 
@@ -43,7 +45,7 @@ CARIACO_dat_joined <- list(CARIACO,
 ) %>% 
   reduce(full_join, by = c("time_month"))
 
-sel_env_factors = c("u10","Salinity_bottles", "Temperature", "Isotherm_21", "NO3_merged","PO4_merged","SiO4_merged", "AMO_lag2", "MEIv2_lag4")#, "Shannon_gen", "Pielou_gen", "GenusRichness")
+sel_env_factors = c("u10_negative","Salinity_bottles", "sst_10m", "Isotherm_21", "NO3_merged","PO4_merged","SiO4_merged", "AMO", "MEIv2", "tp", "e")#, "Shannon_gen", "Pielou_gen", "GenusRichness")
 
 firstSpec = as.numeric(which(names(CARIACO_dat_joined)=="Acanthoica"))
 lastSpec = as.numeric(which(names(CARIACO_dat_joined)=="Zygosphaera"))
@@ -62,12 +64,12 @@ Env_Matrix <- Comp_Full_Matrix[,sel_env_factors]
 
 names(Env_Matrix)
 
-names(Env_Matrix)[1] <- "u-comp wind 10m"
+names(Env_Matrix)[1] <- "Wind speed"
 names(Env_Matrix)[2] <- "Salinity"
 
-names(Env_Matrix)[3] <- "Temperature"
+names(Env_Matrix)[3] <- "SST"
 
-names(Env_Matrix)[4] <- "Isotherm_21"
+names(Env_Matrix)[4] <- "Isotherm Depth"
 
 
 names(Env_Matrix)[5] <- "NO3"

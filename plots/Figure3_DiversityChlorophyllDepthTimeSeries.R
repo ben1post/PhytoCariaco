@@ -111,7 +111,7 @@ egg::ggarrange(sea_0, sea_1,sea_2,sea_3)
 # EXPORT FINAL PLOT:
 
 #options(repr.plot.width=10, repr.plot.height=8)
-pdf("DepthDivTimeSeries_updated.pdf", width=10, height=8)
+pdf("plots/exports/Figure3_DepthDivTimeSeries_v2.pdf", width=10, height=8)
 egg::ggarrange(tim_0,sea_0,tim_1,sea_1, tim_2,sea_2,tim_3, sea_3, 
                ncol = 2, 
                labels = c("a", "b","c","d","e","f","g","h"),

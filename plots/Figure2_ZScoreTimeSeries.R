@@ -142,4 +142,35 @@ ggplot(yearly_zscore, aes(x=as.character(Year), y=ord.var, fill=zscore_raw))+ ge
     axis.line=element_blank())+
   xlim(as.character(1996:2015))
 
-ggsave("plots/exports/Figure2_ZScores_v2.pdf", width=14, height=10)
+ggsave("plots/exports/Figure2_ZScores_v2_raw.pdf", width=14, height=10)
+
+
+# Create large corrplot of all variables for visualisation and supplemental!
+
+library(corrplot)
+envvars <- CARIACO %>% select(MEIv2, AMO, u10_negative, tp, e, 
+                              sst_10m, Isotherm_21, Salinity_bottles, NO3_merged, PO4_merged, SiO4_merged,
+                              Chlorophyll, Abundance_Diatom, Abundance_Hapto, Abundance_Dino, Abundance_Cyano, Abundance_Nanoflagellate,
+                              GenusRichness, Shannon_gen, Pielou_gen,
+                              -time_month)
+
+names(envvars) <- c("MEI v.2", "AMO", "Wind speed", "Precipitation", "Evaporation", 
+                    "SST", "21°C Isotherm", "Salinity", "NO3", "PO4", "SiO4",
+                    "Chlorophyll a", "Diatoms", "Haptophytes", 
+                    "Dinoflagellates", "Cyanobacteria", "Nanoflagellates",
+                    "Genus Richness", "Shannon Index", "Pielou's Index")
+
+m = cor(envvars, use = "pairwise.complete.obs")
+#options(repr.plot.width=15, repr.plot.height=15)
+corrplot(m, diag = FALSE, order = 'hclust', addrect = 2)
+
+testRes = cor.mtest(m, conf.level = 0.95)
+corrplot(m, p.mat = testRes$p, sig.level = 0.10, order = 'hclust', addrect = 4, insig='blank')
+
+corrplot(m,diag = FALSE, p.mat = testRes$p, sig.level = c(0.001, 0.01, 0.05), pch.cex = 0.9, insig = 'label_sig', tl.col = 'black')
+
+
+corrplot(m,diag = FALSE,order = 'hclust', addrect = 4, p.mat = testRes$p, sig.level = c(0.001, 0.01, 0.05), pch.cex = 0.9, insig = 'label_sig', tl.col = 'black')
+
+
+library(pheatmap)

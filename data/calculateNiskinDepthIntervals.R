@@ -60,7 +60,7 @@ niskin_dat$month <- format(niskin_dat$date, format="%m")
 #nm2 <- setNames( rep(c("Winter", "Spring", "Summer", "Fall"),
 #        each = 3), c("12","01","02","03","04","05","06","07","08","09","10","11"))
 nm2 <- setNames( c(rep(c("Upwelling", "Rainy"),
-                       each = 5),"Rainy","Rainy"), c("12","01","02","03","04","05","06","07","08","09","10","11"))
+                       each = 6)), c("12","01","02","03","04","05","06","07","08","09","10","11"))
 #add year and season columns to data frame 
 niskin_dat$year = format(niskin_dat$date, "%Y")
 niskin_dat$season = nm2[niskin_dat$month]
