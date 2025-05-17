@@ -49,20 +49,19 @@ extractMatrixFix <- function(env_factors){
 
 
 # Collect list of environmental factors
-GF_env_factors_FULL = c("u10_lag2", "NO3_merged",
+GF_env_factors_FULL = c("u10_lag5", "NO3_merged",
                         "PO4_merged", "SiO4_merged",
-                        "Salinity_bottles_lag2", "Temperature", "Isotherm_21",
-                        "AMO_lag2", 
-                        "MEIv2_lag4")
+                        "Salinity_bottles_lag3", "sst_10m", "Isotherm_21",
+                        "AMO_lag2", "MEIv2_lag4",  "tp_lag1", "e_lag5")
 
 # Collect list of environmental factors
-GF_env_factors_FULL = c("u10_lag1", "NO3_merged",
-                        "PO4_merged", "SiO4_merged", "tp_lag2", "e_lag2",
+GF_env_factors_nolag = c("u10", "NO3_merged",
+                        "PO4_merged", "SiO4_merged", "tp", "e",
                         "Salinity_bottles", "sst_10m", "Isotherm_21",
-                        "AMO_lag5", 
-                        "MEIv2_lag3")
+                        "AMO", 
+                        "MEIv2")
 
-GF_inputs <- extractMatrixFix(GF_env_factors_FULL)
+GF_inputs <- extractMatrixFix(GF_env_factors_nolag)
 
 envGF <- GF_inputs[[1]]
 specGF <- GF_inputs[[2]]
@@ -179,7 +178,7 @@ plot(gf, plot.type="C", imp.vars=most_important,
 show.species=FALSE
 show.overall=TRUE
 
-imp.vars <- imp.var.names <- names(importance(gf))[1:9]
+imp.vars <- imp.var.names <- names(importance(gf))#[1:9]
 imp.vars
 
 par(mfrow=rev(n2mfrow(length(imp.vars)*(show.species+show.overall))))
@@ -479,7 +478,7 @@ merged_genus_cumimp_df$Predictor <- factor(merged_genus_cumimp_df$Predictor, lev
 
 options(repr.plot.width=10, repr.plot.height=12)
 
-filt_vars = c("AMO_lag5", "sst_10m", "NO3_merged", "MEIv2_lag3")
+filt_vars = c("AMO", "sst_10m", "Salinity_bottles","NO3_merged")
 # %>% filter(Predictor %in% filt_vars)
 
 overallCumImp_Plot <- ggplot(data=merged_genus_cumimp_df%>% filter(Predictor %in% filt_vars)) + geom_line(aes(x=x,y=y, col=FuncGroup), alpha=1, linewidth=1.1)+
@@ -522,6 +521,20 @@ right_column = plot_grid(weightedImp_plot, specImp_plot,ColScaleLegend, ncol=3, 
 GF_output_plot1 <- plot_grid(right_column, left_column, ncol=1, rel_heights = c(1.8,2))
 
 GF_output_plot1
-ggsave("plots/exports/Figure6_GF_output_FINAL_v2.pdf",GF_output_plot1, width=12, height=16)
+ggsave("plots/exports/FigureA3_GF_output_NOLAG_v1.pdf",GF_output_plot1, width=12, height=16)
 
 
+
+#### Supplemental Plots #####
+
+## ALL VARS:
+filt_vars = c("AMO", "sst_10m", "Salinity_bottles","NO3_merged")
+# %>% filter(Predictor %in% filt_vars)
+
+SupplementCumImp_Plot <- ggplot(data=merged_genus_cumimp_df%>% filter(!Predictor %in% filt_vars)) + geom_line(aes(x=x,y=y, col=FuncGroup), alpha=1, linewidth=1.1)+
+  geom_line(data=OVCumImpDat%>% filter(!Predictor %in% filt_vars), aes(x=x,y=y), linewidth=1.5, , linetype = "22")+
+  facet_wrap(~Predictor,scales = "free_x") + xlab("Predictor") + ylab("Cumulative Importance") + theme_cowplot(font_size=20) + scale_colour_manual(values = genscolscale) + guides(color="none")
+SupplementCumImp_Plot
+
+
+ggsave("plots/exports/FigureA4_GF_output_Supplement_NOLAG_v1.pdf",SupplementCumImp_Plot, width=12, height=12)

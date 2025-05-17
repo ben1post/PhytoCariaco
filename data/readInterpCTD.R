@@ -56,8 +56,15 @@ mld_df <- mld_depth_2 %>%
   rename(MLD = depth) %>%
   select(date, MLD)
 
+# Calculate SST from Temperature at surface
+# Extract 21 Degree Isotherm
+sst_10m <- ctd_temp_int %>%
+  group_by(date) %>%
+  filter(depth <= 10) %>%
+  summarize(sst = mean(value_int))
+
 # Combine Isotherm and MLD data frames
-CTD_combined_data <- list(iso21_df, mld_df) %>% 
+CTD_combined_data <- list(iso21_df, mld_df, sst_10m) %>% 
   reduce(left_join, by = "date") %>% as.data.frame()
 
 
@@ -65,8 +72,9 @@ CTD_combined_data$time_month = format(CTD_combined_data$date, format="%m-%Y")
 
 # in 2012-11 there were two measurements, so I need to average these two:
 ctd_ds <- CTD_combined_data %>% group_by(time_month) %>% 
-  summarize(Isotherm_21 = mean(Isotherm_21), MLD= mean(MLD)) %>%
-  mutate(Isotherm_21_lag1=lag(Isotherm_21), Isotherm_21_lag2=lag(Isotherm_21, n=2), Isotherm_21_lag3=lag(Isotherm_21, n=3), Isotherm_21_lag4=lag(Isotherm_21, n=4), Isotherm_21_lag5=lag(Isotherm_21, n=5), Isotherm_21_lag6=lag(Isotherm_21, n=6)) %>%
+  summarize(Isotherm_21 = mean(Isotherm_21), MLD= mean(MLD), sst_10m=mean(sst)) %>%
+  mutate(Isotherm_21_lag1=lag(Isotherm_21), Isotherm_21_lag2=lag(Isotherm_21, n=2), Isotherm_21_lag3=lag(Isotherm_21, n=3), Isotherm_21_lag4=lag(Isotherm_21, n=4), Isotherm_21_lag5=lag(Isotherm_21, n=5), Isotherm_21_lag6=lag(Isotherm_21, n=6),
+         sst_10m_lag1=lag(sst_10m), sst_10m_lag2=lag(sst_10m, n=2), sst_10m_lag3=lag(sst_10m, n=3), sst_10m_lag4=lag(sst_10m, n=4), sst_10m_lag5=lag(sst_10m, n=5), sst_10m_lag6=lag(sst_10m, n=6)) %>%
   ungroup()
 
 # Export data

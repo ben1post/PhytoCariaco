@@ -192,7 +192,7 @@ test_vars = c("AMO", "MEIv2", "u10", "tp", "e", "Isotherm_21",
               "sst_10m", "NO3_merged", "PO4_merged", "SiO4_merged",
               "Salinity_bottles", "Chlorophyll", "GenusRichness", "Shannon_gen", "Pielou_gen")
 
-test_vars_finalnames = c("AMO", "MEI v.2", "Precipitation", "Evaporation", "u-component 10 m wind speed", "Isotherm 21 °C",
+test_vars_finalnames = c("AMO", "MEI v.2", "Wind speed", "Precipitation", "Evaporation",  "21 °C Isotherm",
                          "SST", "NO3", "PO4", "SiO4",
                          "Salinity","Chlorophyll a",  "Genus Richness", "Shannon Index", "Pielou Index")
 
