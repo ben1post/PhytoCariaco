@@ -5,9 +5,9 @@ This repository contains the R code used for the data analysis and figure genera
 **"Reversible Regime Change: Climate-driven phytoplankton community shifts in the Cariaco Basin, Venezuela"**  
 *Submitted to JGR Biogeosciences, 2025*
 
-Authored by Benjamin Post, Acevedo-Trejos, Chakraborty, Barton, and Merico.
+Authored by Post, Acevedo-Trejos, Chakraborty, Barton, and Merico.
 
-All code was written by Benjamin Post.
+All code was written by Post.
 
 
 ## Overview
