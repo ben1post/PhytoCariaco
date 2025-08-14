@@ -22,7 +22,7 @@ The analysis investigates long-term changes in phytoplankton community structure
 - `plots/`  
   R scripts for analysis and plotting  
   - `Figure1_Map.R` — Generates study area map  
-  - `Figure2_ZScoreTimeSeries.R` — Environmental z-score time series  
+  - `Figure2_ZScoreTimeSeries.R` — All variables z-score time series plot
   - `Figure3_DiversityChlorophyllDepthTimeSeries.R` — Diversity, chlorophyll, and depth time series  
   - `Figure4_ClusteringNMDS.R` — Clustering and NMDS analysis  
   - `Figure4_Subplots/`  
@@ -31,10 +31,11 @@ The analysis investigates long-term changes in phytoplankton community structure
     - `Figure4_c_NMDS.R` — NMDS ordination plot  
     - `Figure4_d_DensityDistClusters` — Cluster-based density distributions  
   - `Figure5_GradientForest_preliminaryRuns.R` — Preliminary gradient forest analysis  
-  - `FigureA1_CorrelationClustPlot.R` — Correlation and clustering plot
+  - `Figure5_GradientForest.R` — Final gradient forest analysis incl. time lags 
+  - `FigureA1_CorrelationClustPlot.R` — Correlation plot in Appendix
 
 - `export/`  
-  Final figures exported for further processing (e.g., Adobe Illustrator)
+  Generated figures which were further processed with Adobe Illustrator
 
 - `README.md`  
   This file

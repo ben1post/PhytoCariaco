@@ -290,45 +290,6 @@ GenusMatched
 # calculate the proportion of counts that are predicted by GF:
 sum(specGF[GenusMatched$Genus])/ sum(specGF) # captures this proportion of counts!
 
-# create genus table for manuscript:
-input_genus <- names(mo5_specGF)
-#GenusInput <- GenusFuncGroup_match[GenusFuncGroup_match$Genus %in% input_genus,]
-#GenusInput %>% arrange(FuncGroup) %>% select(FuncGroup, Genus) %>% kbl("latex", booktabs=T)
-
-ds_genus_overview <- phyto_counts %>% 
-  filter(TaxonRank == "Genus" | TaxonRank == "Species")%>% 
-  group_by(Genus, FuncGroup) %>% summarize(IDS = unique(AphiaID))
-
-Actual_Genus = ds_genus_overview[ds_genus_overview$Genus %in% input_genus,]
-
-Actual_Genus$name <- NA
-Actual_Genus$auth <- NA
-Actual_Genus$rank <- NA
-
-for (i in 1:nrow(Actual_Genus)){
-  #print(i)
-  id = Actual_Genus$IDS[i]
-  
-  skip_to_next <- FALSE
-  #print(id)
-  tryCatch({
-  record = wm_record(id=id)
-  #print(record)
-  auth = record$authority
-  name = record$scientificname
-  rank = record$rank
-  
-  Actual_Genus$auth[i] <- auth
-  Actual_Genus$name[i] <- name
-  Actual_Genus$rank[i] <- rank
-  
-  }, error = function(e) { skip_to_next <<- TRUE})
-  
-  if(skip_to_next) { next } 
-}
-
-write.csv(Actual_Genus, "Actual_Genus_FULL.csv")
-
 
 gg_color_hue <- function(n) {
   hues = seq(15, 375, length = n + 1)
@@ -578,3 +539,45 @@ SupplementCumImp_Plot
 
 
 ggsave("plots/exports/FigureA4_GF_output_Supplement_NOLAG_v1.pdf",SupplementCumImp_Plot, width=12, height=12)
+
+
+
+
+# create genus table for manuscript:
+input_genus <- names(mo5_specGF)
+#GenusInput <- GenusFuncGroup_match[GenusFuncGroup_match$Genus %in% input_genus,]
+#GenusInput %>% arrange(FuncGroup) %>% select(FuncGroup, Genus) %>% kbl("latex", booktabs=T)
+
+ds_genus_overview <- phyto_counts %>%
+  filter(TaxonRank == "Genus" | TaxonRank == "Species")%>%
+  group_by(Genus, FuncGroup) %>% summarize(IDS = unique(AphiaID))
+
+Actual_Genus = ds_genus_overview[ds_genus_overview$Genus %in% input_genus,]
+
+Actual_Genus$name <- NA
+Actual_Genus$auth <- NA
+Actual_Genus$rank <- NA
+
+for (i in 1:nrow(Actual_Genus)){
+  #print(i)
+  id = Actual_Genus$IDS[i]
+
+  skip_to_next <- FALSE
+  #print(id)
+  tryCatch({
+  record = wm_record(id=id)
+  #print(record)
+  auth = record$authority
+  name = record$scientificname
+  rank = record$rank
+
+  Actual_Genus$auth[i] <- auth
+  Actual_Genus$name[i] <- name
+  Actual_Genus$rank[i] <- rank
+
+  }, error = function(e) { skip_to_next <<- TRUE})
+
+  if(skip_to_next) { next }
+}
+
+write.csv(Actual_Genus, "Actual_Genus_FULL.csv")
