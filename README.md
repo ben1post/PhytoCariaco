@@ -1,5 +1,7 @@
 # PhytoCariaco: Phytoplankton Community Dynamics in the Cariaco Basin
 
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.16878343.svg)](https://doi.org/10.5281/zenodo.16878343)
+
 This repository contains the R code used for the data analysis and figure generation presented in the manuscript:
 
 **"Reversible Regime Change: Climate-driven phytoplankton community shifts in the Cariaco Basin, Venezuela"**  
