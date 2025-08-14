@@ -4,6 +4,7 @@ This repository contains the R code used for the data analysis and figure genera
 
 **"Reversible Regime Change: Climate-driven phytoplankton community shifts in the Cariaco Basin, Venezuela"**  
 *Submitted to JGR Biogeosciences, 2025*
+
 Authored by Benjamin Post, Acevedo-Trejos, Chakraborty, Barton, and Merico.
 
 All code was written by Benjamin Post.
@@ -15,21 +16,32 @@ The analysis investigates long-term changes in phytoplankton community structure
 
 ## Repository Structure
 
-📁 data/ # Raw data, data pipeline and cleaned data used in analysis
-📁 plots/ # R scripts for analysis and plotting
-├── Figure1_Map.R
-├── Figure2_ZScoreTimeSeries.R
-├── Figure3_DiversityChlorophyllDepthTimeSeries.R
-├── Figure4_ClusteringNMDS.R
-├── 📁 Figure4_Subplots/ # Scripts to generate subfigures of Figure 4
-├──├── Figure4_a_b_YearlyClusterTurnover.R
-├──├── Figure4_c_NMDS.R
-├──├── Figure4_d_DensityDistClusters
-├── Figure5_GradientForest_preliminaryRuns.R
-├── FigureA1_CorrelationClustPlot.R
-├── 📁 export/ # Generated figures which were further processed with Adobe Illustrator
-📄 README.md # This file
-📄 LICENSE # License information for this repository
+- `data/`  
+  Raw data, data pipeline, and cleaned data used in analysis
+
+- `plots/`  
+  R scripts for analysis and plotting  
+  - `Figure1_Map.R` — Generates study area map  
+  - `Figure2_ZScoreTimeSeries.R` — Environmental z-score time series  
+  - `Figure3_DiversityChlorophyllDepthTimeSeries.R` — Diversity, chlorophyll, and depth time series  
+  - `Figure4_ClusteringNMDS.R` — Clustering and NMDS analysis  
+  - `Figure4_Subplots/`  
+    Scripts for subfigures of Figure 4:  
+    - `Figure4_a_b_YearlyClusterTurnover.R` — Yearly clustering and turnover  
+    - `Figure4_c_NMDS.R` — NMDS ordination plot  
+    - `Figure4_d_DensityDistClusters` — Cluster-based density distributions  
+  - `Figure5_GradientForest_preliminaryRuns.R` — Preliminary gradient forest analysis  
+  - `FigureA1_CorrelationClustPlot.R` — Correlation and clustering plot
+
+- `export/`  
+  Final figures exported for further processing (e.g., Adobe Illustrator)
+
+- `README.md`  
+  This file
+
+- `LICENSE`  
+  License information for this repository
+
 
 
 ## Requirements
@@ -70,7 +82,7 @@ install.packages(c(
   "rnaturalearth", "sf", "tidyverse", "vegan", "viridis", "worrms"
 ))
 ```
-Note: Some of these packages might have additional dependencies, based on you system.
+Note: Some of these packages might have additional dependencies, based on your system.
 
 ## Questions or Contributions
 
