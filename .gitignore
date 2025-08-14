@@ -48,3 +48,11 @@ po/*~
 # RStudio Connect folder
 rsconnect/
 .DS_Store
+
+# PyCharm files
+.idea/
+
+# Jupyter Notebooks
+
+.ipynb_checkpoints
+*/.ipynb_checkpoints/*
