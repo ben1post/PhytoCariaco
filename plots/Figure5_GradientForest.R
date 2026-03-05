@@ -50,14 +50,14 @@ extractMatrixFix <- function(env_factors){
 
 
 # Collect list of environmental factors
-GF_env_factors_FULL = c("u10_lag5", "NO3_merged",
+GF_env_factors_FULL = c("u10_lag1", "NO3_merged",
                         "PO4_merged", "SiO4_merged",
-                        "Salinity_bottles_lag3", "sst_10m", "Isotherm_21",
-                        "AMO_lag2", "MEIv2_lag4",  "tp_lag1", "e_lag5")
+                        "Salinity_bottles_lag2", "sst_10m", "Isotherm_21",
+                        "AMO_lag24", "MEIv2_lag48",  "tp_lag1")
 
 # Collect list of environmental factors
 GF_env_factors_nolag = c("u10", "NO3_merged",
-                        "PO4_merged", "SiO4_merged", "tp", "e",
+                        "PO4_merged", "SiO4_merged", "tp", 
                         "Salinity_bottles", "sst_10m", "Isotherm_21",
                         "AMO", 
                         "MEIv2")
@@ -65,6 +65,12 @@ GF_env_factors_nolag = c("u10", "NO3_merged",
 GF_inputs <- extractMatrixFix(GF_env_factors_FULL)
 
 envGF <- GF_inputs[[1]]
+
+# check if integration matters:
+#envGF <- envGF %>%
+#  mutate(across(c(NO3_merged, PO4_merged, SiO4_merged), ~ .x * 100))
+
+
 specGF <- GF_inputs[[2]]
 
 
@@ -87,7 +93,7 @@ dim(mo5_specGF)
 dim(envGF)
 
 # log transform species counts:
-log_specGF <- log1p(mo5_specGF*100)
+log_specGF <- log1p(mo5_specGF) # *100) # now integrated values are used
 
 gf <- gradientForest(cbind(envGF, log_specGF),
                      predictor.vars=colnames(envGF),
@@ -522,7 +528,7 @@ right_column = plot_grid(weightedImp_plot, specImp_plot,ColScaleLegend, ncol=3, 
 GF_output_plot1 <- plot_grid(right_column, left_column, ncol=1, rel_heights = c(1.8,2))
 
 GF_output_plot1
-ggsave("plots/exports/FigureA3_GF_output_NOLAG_v1.pdf",GF_output_plot1, width=12, height=16)
+#ggsave("plots/exports/FigureA3_GF_output_NOLAG_v1.pdf",GF_output_plot1, width=12, height=16)
 
 
 
@@ -538,7 +544,7 @@ SupplementCumImp_Plot <- ggplot(data=merged_genus_cumimp_df%>% filter(!Predictor
 SupplementCumImp_Plot
 
 
-ggsave("plots/exports/FigureA4_GF_output_Supplement_NOLAG_v1.pdf",SupplementCumImp_Plot, width=12, height=12)
+#ggsave("plots/exports/FigureA4_GF_output_Supplement_NOLAG_v1.pdf",SupplementCumImp_Plot, width=12, height=12)
 
 
 
@@ -580,4 +586,4 @@ for (i in 1:nrow(Actual_Genus)){
   if(skip_to_next) { next }
 }
 
-write.csv(Actual_Genus, "Actual_Genus_FULL.csv")
+#write.csv(Actual_Genus, "Actual_Genus_FULL.csv")

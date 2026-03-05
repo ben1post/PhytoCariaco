@@ -1,96 +1,183 @@
-# Script to merge all processed datasets into cohesive data frame to use for the analysis
+# Script to merge all processed datasets into cohesive data frame for analysis
+# All lag calculations are performed here after creating a complete monthly sequence
 
 library(tidyverse)
-library(vegan)
-# set strings as factors to false
+
 options(stringsAsFactors = FALSE)
 
-# READ ERA DATA
-wind_ds <- readRDS("data/processed/ERA5_data.rds")
-wind_ds$date = as.Date(wind_ds$time)
-wind_ds$time_month = format(wind_ds$date, format="%m-%Y")
-wind_ds <- wind_ds %>% select(-date, -time)
-str(wind_ds)
+# ============================================
+# READ ALL DATASETS (without lag calculations)
+# ============================================
 
-wind_ds <- wind_ds %>% mutate(u10_lag1=lag(u10), u10_lag2=lag(u10, n=2), u10_lag3=lag(u10, n=3), u10_lag4=lag(u10, n=4), u10_lag5=lag(u10, n=5), u10_lag6=lag(u10, n=6),
-                              e_lag1=lag(e), e_lag2=lag(e, n=2), e_lag3=lag(e, n=3), e_lag4=lag(e, n=4), e_lag5=lag(e, n=5), e_lag6=lag(e, n=6),
-                              tp_lag1=lag(tp), tp_lag2=lag(tp, n=2), tp_lag3=lag(tp, n=3), tp_lag4=lag(tp, n=4), tp_lag5=lag(tp, n=5), tp_lag6=lag(tp, n=6))
+# ERA5 Data
+wind_ds <- readRDS("data/processed/ERA5_data.rds") %>%
+  mutate(
+    date = as.Date(time),
+    time_month = format(date, format = "%m-%Y")
+  ) %>%
+  select(time_month, u10, e, tp)
 
+# Niskin Data (NOTE: Chl, PP, nutrients are depth-integrated)
+niskin_ds <- readRDS("data/processed/Niskin_qchecked_100m.RDS") %>%
+  mutate(time_month = format(date, format = "%m-%Y")) %>%
+  select(-date)
 
+niskin_ds$PrimaryProductivity <- niskin_ds$PrimaryProductivity * 12
 
-# READ NISKIN DATA
-niskin_ds <- readRDS("data/processed/Niskin_qchecked_100m.RDS")
-niskin_ds$time_month = format(niskin_ds$date, format="%m-%Y")
-niskin_ds <- niskin_ds %>% select(-date) %>%
-  mutate(NO3_merged_lag1=lag(NO3_merged), NO3_merged_lag2=lag(NO3_merged, n=2), NO3_merged_lag3=lag(NO3_merged, n=3),
-         PO4_merged_lag1=lag(PO4_merged), PO4_merged_lag2=lag(PO4_merged, n=2), PO4_merged_lag3=lag(PO4_merged, n=3),
-         SiO4_merged_lag1=lag(SiO4_merged), SiO4_merged_lag2=lag(SiO4_merged, n=2), SiO4_merged_lag3=lag(SiO4_merged, n=3),
-         Temperature_lag1=lag(Temperature, n=1), Temperature_lag2=lag(Temperature, n=2), Temperature_lag3=lag(Temperature, n=3),
-         Salinity_bottles_lag1=lag(Salinity_bottles, n=1), Salinity_bottles_lag2=lag(Salinity_bottles, n=2), Salinity_bottles_lag3=lag(Salinity_bottles, n=3))
-str(niskin_ds)
-
-# READ PHYTOPLANKTON DATA
+# Phytoplankton Data (NOTE: abundances are depth-integrated)
 diversity_ds <- readRDS("data/processed/PhytoplanktonAbundanceDiversity.RDS")
-str(diversity_ds)
 
-# READ CTD DATA
+# CTD Data
 ctd_ds <- readRDS("data/processed/CTD_Isotherm21_MLD.rds")
-str(ctd_ds)
 
-# READ AMO DATA
-amo_table <- read.table("data/AMO/amo_monthly.txt", header=FALSE, skip=1)
+# AMO Data
+amo_table <- read.table("data/AMO/amo_monthly.txt", header = FALSE, skip = 1)
+nm2 <- setNames(sprintf("%02d", 1:12), paste0("V", 2:13))
 
-amo_df <- amo_table %>% gather(Month, Value, -V1)
+amo_ds <- amo_table %>%
+  gather(Month, AMO, -V1) %>%
+  mutate(
+    Month = nm2[Month],
+    time_month = paste(Month, V1, sep = "-")
+  ) %>%
+  select(time_month, AMO)
 
-nm2 <- setNames( c("01","02","03","04","05","06","07","08","09","10","11","12"), c("V2", "V3", "V4", "V5", "V6", "V7", "V8", "V9", "V10", "V11", "V12", "V13"))
-amo_df$Month = nm2[amo_df$Month]
-
-names(amo_df) <- c("Year","Month","AMO")
-
-amo_ds <- amo_df %>% 
-  mutate(time_month = paste(Month, Year, sep="-")) %>%
-  select(AMO, time_month) %>%
-  
-  mutate(AMO_lag1=lag(AMO), AMO_lag2=lag(AMO, n=2), AMO_lag3=lag(AMO, n=3), AMO_lag4=lag(AMO, n=4), AMO_lag5=lag(AMO, n=5), AMO_lag6=lag(AMO, n=6), AMO_lag11=lag(AMO, n=11),AMO_lag12=lag(AMO, n=12))
-
-str(amo_ds)
-
-
-# READ MEI v.2 DATA
+# MEI v.2 Data
 meiv2_lines <- readLines("data/MEIv2/meiv2.data")
-meiv2_lines = meiv2_lines[c(-1,-48:-51)] # remove unecessary/text lines
+meiv2_lines <- meiv2_lines[c(-1, -48:-51)]
 
-meiv2_table <- read.table(textConnection(meiv2_lines), header=FALSE, stringsAsFactors = FALSE)
+meiv2_ds <- read.table(textConnection(meiv2_lines), header = FALSE) %>%
+  gather(Month, MEIv2, -V1) %>%
+  mutate(
+    Month = nm2[Month],
+    time_month = paste(Month, V1, sep = "-")
+  ) %>%
+  select(time_month, MEIv2)
+
+# ============================================
+# CREATE COMPLETE MONTHLY BACKBONE
+# ============================================
+
+# Define CARIACO time series period
+start_date <- as.Date("1995-11-01")
+end_date <- as.Date("2017-01-01")
+
+# Extended backbone (to accommodate lag variables of climate indices)
+backbone_start <- as.Date("1985-11-01")  # 10 years before study start
+
+extended_months <- data.frame(
+  date = seq(from = backbone_start, to = end_date, by = "month")
+) %>%
+  mutate(time_month = format(date, format = "%m-%Y"))
+
+cat("Extended backbone:", nrow(extended_months), "months\n")
+cat("  From:", format(backbone_start, "%b %Y"), "to", format(end_date, "%b %Y"), "\n")
 
 
-meiv2_df <- meiv2_table %>% gather(Month, Value, -V1)
-meiv2_df$Month = nm2[meiv2_df$Month]
+# Create complete monthly sequence
+complete_months <- data.frame(
+  date = seq(from = start_date, to = end_date, by = "month")
+) %>%
+  mutate(time_month = format(date, format = "%m-%Y"))
 
-names(meiv2_df) <- c("Year","Month","MEIv2")
+cat("Complete monthly backbone:", nrow(complete_months), "months\n")
 
-meiv2_ds <- meiv2_df %>% 
-  mutate(time_month = paste(Month, Year, sep="-")) %>%
-  select(MEIv2, time_month) %>%
-  
-  mutate(MEIv2_lag1=lag(MEIv2), MEIv2_lag2=lag(MEIv2, n=2), MEIv2_lag3=lag(MEIv2, n=3), MEIv2_lag4=lag(MEIv2, n=4), MEIv2_lag5=lag(MEIv2, n=5), MEIv2_lag6=lag(MEIv2, n=6), MEIv2_lag12=lag(MEIv2, n=12))
+# ============================================
+# JOIN ALL DATASETS TO MONTHLY BACKBONE
+# ============================================
 
-str(meiv2_ds)
+CARIACO_extended <- extended_months %>%
+  left_join(wind_ds, by = "time_month") %>%
+  left_join(niskin_ds, by = "time_month") %>%
+  left_join(diversity_ds, by = "time_month") %>%
+  left_join(ctd_ds, by = "time_month") %>%
+  left_join(amo_ds, by = "time_month") %>%
+  left_join(meiv2_ds, by = "time_month") %>%
+  arrange(date)
 
+# ============================================
+# CALCULATE ALL LAGS ON COMPLETE SEQUENCE
+# ============================================
 
-# COMBINE ALL DATASETS INTO ONE DATA FRAME
-CARIACO_dat_joined <- list(wind_ds, 
-                           niskin_ds,
-                           diversity_ds,
-                           ctd_ds,
-                           amo_ds,
-                           meiv2_ds
-) %>% 
-  reduce(full_join, by = c("time_month"))
+CARIACO_extended_lags <- CARIACO_extended %>%
+  mutate(
+    # ERA5 wind/climate lags (1-6 months)
+    across(
+      c(u10, e, tp),
+      list(lag1 = ~lag(., 1), lag2 = ~lag(., 2), lag3 = ~lag(., 3),
+           lag4 = ~lag(., 4), lag5 = ~lag(., 5), lag6 = ~lag(., 6))
+    ),
+    # Nutrient lags (1-3 months)
+    across(
+      c(NO3_merged, PO4_merged, SiO4_merged),
+      list(lag1 = ~lag(., 1), lag2 = ~lag(., 2), lag3 = ~lag(., 3))
+    ),
+    # Physical oceanography lags (1-3 months)
+    across(
+      c(Temperature, Salinity_bottles),
+      list(lag1 = ~lag(., 1), lag2 = ~lag(., 2), lag3 = ~lag(., 3))
+    ),
+    # CTD-derived lags (1-6 months)
+    across(
+      c(Isotherm_21, sst_10m),
+      list(lag1 = ~lag(., 1), lag2 = ~lag(., 2), lag3 = ~lag(., 3),
+           lag4 = ~lag(., 4), lag5 = ~lag(., 5), lag6 = ~lag(., 6))
+    ),
+    # Climate indices lags (1-6 months + annual)
+    across(
+      c(AMO, MEIv2),
+      list(lag1 = ~lag(., 1), lag2 = ~lag(., 2), lag3 = ~lag(., 3),
+           lag4 = ~lag(., 4), lag5 = ~lag(., 5), lag6 = ~lag(., 6),
+           lag7 = ~lag(., 7), lag8 = ~lag(., 8), lag9 = ~lag(., 9),
+           lag10 = ~lag(., 10), lag11 = ~lag(., 11), lag12 = ~lag(., 12),
+           # --- YEAR LAGS ADDED HERE ---
+           lag24 = ~lag(., 24),  # 2 Years
+           lag36 = ~lag(., 36),  # 3 Years
+           lag48 = ~lag(., 48),  # 4 Years
+           lag60 = ~lag(., 60),   # 5 Years
+           lag72 = ~lag(., 72),   # 6 Years
+           lag84 = ~lag(., 84),   # 7 Years
+           lag96 = ~lag(., 96),   # 8 Years
+           lag108 = ~lag(., 108)   # 9 Years
+          )
+    ),
+  )
 
-# Remove Years out of scope of CARIACO time series
-CARIACO_dat_joined_truncated <- CARIACO_dat_joined[which(CARIACO_dat_joined$time_month=="11-1995"):which(CARIACO_dat_joined$time_month=="01-2017"),]
+# ============================================
+# TRUNCATE TO STUDY PERIOD
+# ============================================
 
-names(CARIACO_dat_joined_truncated)
+CARIACO_dat_joined <- CARIACO_extended_lags %>%
+  filter(date >= start_date & date <= end_date) %>%
+  select(-date)
 
-# Save and export
-saveRDS(CARIACO_dat_joined_truncated, "data/processed/CARIACO_EnvData_combined.rds")
+# ============================================
+# DIAGNOSTICS
+# ============================================
+
+cat("\nFinal dataset:", nrow(CARIACO_dat_joined), "rows\n\n")
+
+# Check NA patterns for key variables (excluding lag columns)
+key_vars <- c("u10", "tp", "Chlorophyll", "PrimaryProductivity", 
+              "NO3_merged", "PO4_merged", "SiO4_merged",
+              "Isotherm_21", "sst_10m", "MLD",
+              "Shannon_gen", "GenusRichness",
+              "AMO", "MEIv2")
+
+na_summary <- CARIACO_dat_joined %>%
+  select(any_of(key_vars)) %>%
+  summarise(across(everything(), ~sum(is.na(.)))) %>%
+  pivot_longer(everything(), names_to = "variable", values_to = "n_NA") %>%
+  mutate(pct_NA = round(100 * n_NA / nrow(CARIACO_dat_joined), 1)) %>%
+  arrange(desc(n_NA))
+
+cat("Missing data summary (key variables):\n")
+print(na_summary)
+
+# ============================================
+# SAVE
+# ============================================
+
+saveRDS(CARIACO_dat_joined, "data/processed/CARIACO_EnvData_combined.rds")
+
+cat("\nData saved to: data/processed/CARIACO_EnvData_combined.rds\n")

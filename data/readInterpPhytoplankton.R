@@ -8,9 +8,14 @@ ds <- read.csv("data/BCO-DMO/phytoplankton.csv")  #, na.strings=c("nd","?"))
 
 # Fix date, Aphia ID and depth columns
 ds$date = parse_date_time(ds$Datetime_UTC, orders="%Y-%m-%d[.]H:M", tz='UTC')
-ds$d_7m = as.numeric(ds$d_7m)
-ds$d_75m = as.numeric(ds$d_75m)
-ds$d_100m = as.numeric(ds$d_100m)
+ds$d_1m   <- as.numeric(ds$d_1m)
+ds$d_7m   <- as.numeric(ds$d_7m)
+ds$d_15m  <- as.numeric(ds$d_15m)
+ds$d_25m  <- as.numeric(ds$d_25m)
+ds$d_35m  <- as.numeric(ds$d_35m)
+ds$d_55m  <- as.numeric(ds$d_55m)
+ds$d_75m  <- as.numeric(ds$d_75m)
+ds$d_100m <- as.numeric(ds$d_100m)
 ds$AphiaID = as.integer(ds$AphiaID)
 
 # read annotated and corrected pyhytoplankton data (table with manually corrected names and IDs)
@@ -28,6 +33,8 @@ AphiaIDcorrected <- data.frame("AphiaID" = as.integer(occurrence_corrected$Aphia
 
 # Filter out duplicates
 AphiaIDcorrected_rmdp <- AphiaIDcorrected %>% distinct(AphiaID, ScientificName_corrected, .keep_all = TRUE)
+
+AphiaIDcorrected_rmdp <- AphiaIDcorrected %>% distinct(AphiaID, SpeciesNameCleaned, .keep_all = TRUE)
 
 # Merge the original data and the corrected by species name and Aphia ID
 ds_phytoMergedCorrected <- merge(ds, AphiaIDcorrected_rmdp, by=c("AphiaID", "SpeciesNameCleaned"), all=TRUE)
@@ -49,13 +56,27 @@ ds_phyInt <- rbind(data.frame(val=ds_FG$d_1m, depth=1, date=ds_FG$date, AphiaID=
                    data.frame(val=ds_FG$d_7m, depth=7, date=ds_FG$date, AphiaID=ds_FG$AphiaID, Genus=ds_FG$Genus, TaxonRank=ds_FG$TaxonRank),
                    data.frame(val=ds_FG$d_15m, depth=15, date=ds_FG$date, AphiaID=ds_FG$AphiaID, Genus=ds_FG$Genus, TaxonRank=ds_FG$TaxonRank),
                    data.frame(val=ds_FG$d_25m, depth=25, date=ds_FG$date, AphiaID=ds_FG$AphiaID, Genus=ds_FG$Genus, TaxonRank=ds_FG$TaxonRank),
+                   data.frame(val=ds_FG$d_35m, depth=35, date=ds_FG$date, AphiaID=ds_FG$AphiaID, Genus=ds_FG$Genus, TaxonRank=ds_FG$TaxonRank),
                    data.frame(val=ds_FG$d_55m, depth=55, date=ds_FG$date, AphiaID=ds_FG$AphiaID, Genus=ds_FG$Genus, TaxonRank=ds_FG$TaxonRank),
                    data.frame(val=ds_FG$d_75m, depth=75, date=ds_FG$date, AphiaID=ds_FG$AphiaID, Genus=ds_FG$Genus, TaxonRank=ds_FG$TaxonRank),
                    data.frame(val=ds_FG$d_100m, depth=100, date=ds_FG$date, AphiaID=ds_FG$AphiaID, Genus=ds_FG$Genus, TaxonRank=ds_FG$TaxonRank))
 
 
+# FIX: Select ONLY date, depth, AphiaID, and val. Drop Genus/TaxonRank here.
+ds_phyInt_clean <- ds_phyInt %>% 
+  select(date, depth, AphiaID, val)
+
+# Now Pivot. This will result in exactly 1 row per date/depth combination.
+Mesh_phyInt <- pivot_wider(ds_phyInt_clean, 
+                           names_from = AphiaID, 
+                           values_from = val, 
+                           values_fn = sum, 
+                           values_fill = 0)
+
+
 # Pivot dataframe to have AphiaID as columns - Missing Data is set to 0 (none observed)
-Mesh_phyInt <- pivot_wider(ds_phyInt, names_from = AphiaID, values_from = val, values_fn = sum, values_fill = 0)
+#Mesh_phyInt <- pivot_wider(ds_phyInt, names_from = AphiaID, values_from = val, values_fn = sum, values_fill = 0)
+
 
 # Pivot dataframe to have Genera as columns - Missing Data is set to 0 (none observed)
 ds_genus <- ds_phyInt %>% filter(TaxonRank == "Genus" | TaxonRank == "Species") %>% group_by(Genus, date, depth) %>% summarise(Total = sum(val)) %>% arrange(date)
@@ -67,25 +88,65 @@ saveRDS(Mesh_genus_phyInt, "data/processed/PhytoplanktonRawGenusCounts.RDS")
 # Get unique Aphia IDs to iterate over
 phyto_AphiaID = na.omit(as.character(unique(ds_phyInt$AphiaID)))
 
-# Interpolate
+# # Interpolate (OLD VERSION)
+# getPhytoInterpCounts <- function(depth_from=0, depth_to=100, noofNA=20){
+#   phyto_temp_store = list()
+#   
+#   for (variable in phyto_AphiaID) {
+#     # interpolation algorithm: oce-rr
+#     phyto_temp_store[[variable]] <- interpolateData(
+#       Mesh_phyInt, 
+#       variable, 
+#       depth_from=depth_from, 
+#       depth_to=depth_to, 
+#       noofNA=noofNA, 
+#       int_func='unesco',
+#       output_type='integrated'  # Add this
+#     )
+#     names(phyto_temp_store[[variable]])[1] <- variable
+#   }
+#   
+#   phyto_ds_cleaned <- phyto_temp_store %>% 
+#     reduce(full_join, by = "date") %>% na.omit()
+#   
+#   phyto_ds_cleaned_pivot <- phyto_ds_cleaned %>% 
+#     pivot_longer(cols=-date, names_to = "AphiaID", values_to = "counts") 
+#   
+#   phyto_ds_cleaned_pivot$AphiaID = as.integer(phyto_ds_cleaned_pivot$AphiaID)
+#   
+#   ds_mergedIntCounts <- merge(phyto_ds_cleaned_pivot, ds_FG_uniqueInfo, by=c("AphiaID"), all=TRUE) %>% 
+#     select(date, AphiaID, counts, ScientificName_corrected, Genus, FuncGroup, TaxonRank)
+#   
+#   return(ds_mergedIntCounts)    
+# }
+
+
 getPhytoInterpCounts <- function(depth_from=0, depth_to=100, noofNA=20){
   phyto_temp_store = list()
   
   for (variable in phyto_AphiaID) {
-    # interpolation algorithm: oce-rr
-    phyto_temp_store[[variable]] <- interpolateData(Mesh_phyInt, variable, depth_from=depth_from, depth_to=depth_to, noofNA=noofNA, int_func='unesco')
+    phyto_temp_store[[variable]] <- interpolateData(
+      Mesh_phyInt, 
+      variable, 
+      depth_from=depth_from, 
+      depth_to=depth_to, 
+      noofNA=noofNA, 
+      int_func='unesco',
+      output_type='integrated'  # Add this
+    )
     names(phyto_temp_store[[variable]])[1] <- variable
   }
   
   phyto_ds_cleaned <- phyto_temp_store %>% 
-    reduce(full_join, by = "date") %>% na.omit()
+    reduce(full_join, by = "date") #%>% na.omit()
+  # Consider removing na.omit() or handling per-species
   
   phyto_ds_cleaned_pivot <- phyto_ds_cleaned %>% 
     pivot_longer(cols=-date, names_to = "AphiaID", values_to = "counts") 
   
   phyto_ds_cleaned_pivot$AphiaID = as.integer(phyto_ds_cleaned_pivot$AphiaID)
   
-  ds_mergedIntCounts <- merge(phyto_ds_cleaned_pivot, ds_FG_uniqueInfo, by=c("AphiaID"), all=TRUE) %>% 
+  ds_mergedIntCounts <- merge(phyto_ds_cleaned_pivot, ds_FG_uniqueInfo, by=c("AphiaID"), all.x=TRUE) %>% 
     select(date, AphiaID, counts, ScientificName_corrected, Genus, FuncGroup, TaxonRank)
   
   return(ds_mergedIntCounts)    

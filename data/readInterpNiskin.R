@@ -50,41 +50,67 @@ niskin_ds_3 <- niskin_ds_2 %>%
          PO4_merged = rowwiser(PO4_UDO, PO4_USF),
          SiO4_merged = rowwiser(SiO4_UDO, SiO4_USF))
 
-# create list of numerical variables in datafram to interpolate over
-niskin_numeric = c( 
-  'O2_umol_kg',
-  'O2_ml_L',
-  'NO3_UDO',
-  'PO4_UDO',
-  'SiO4_UDO',
-  'NH4_USF',
-  'NO2_USF',
-  'NO3_NO2_USF',
-  'NO3_USF',
-  'PO4_USF',
-  'SiO4_USF',
-  'NO3_merged',
-  'PO4_merged',
-  'SiO4_merged',
+# Define which variables should be integrated vs averaged
+vars_integrated <- c(
+  'PrimaryProductivity',
+  'Chlorophyll'
+)
+
+vars_averaged <- c(
+  #'O2_umol_kg',
+  #'O2_ml_L',
+  #'NO3_UDO',
+  #'PO4_UDO',
+  #'SiO4_UDO',
+  #'NH4_USF',
+  #'NO2_USF',
+  #'NO3_NO2_USF',
+  #'NO3_USF',
+  #'PO4_USF',
+  #'SiO4_USF',
   'pH_corrected',
   'Salinity_bottles',
   'Temperature',
   'Sigma_t',
-  'PrimaryProductivity',
-  'Chlorophyll',
-  'Phaeopigments')
+  'NO3_merged',
+  'PO4_merged',
+  'SiO4_merged'#,
+  #'Phaeopigments'
+)
 
-# Export raw data values before interpolation
-niskin_raw_out <- niskin_ds_3 %>% select(date, "depth"=Depth_target, all_of(niskin_numeric))
-saveRDS(niskin_raw_out, "data/processed/Niskin_RAW.RDS")
-
-# INTERPOLATE
-getNiskinIntDepth <- function(depth_from=0, depth_to=100, noofNA=40){
+# Updated function with output type handling
+getNiskinIntDepth <- function(depth_from=0, depth_to=100, noofNA=20){
   niskin_temp_store = list()
   
-  for (variable in niskin_numeric) {
-    # interpolation algorithm: oce-rr
-    niskin_temp_store[[variable]] <- interpolateData(niskin_ds_3, variable, depth_from=depth_from, depth_to=depth_to, noofNA = noofNA)
+  # Process integrated variables
+  for (variable in vars_integrated) {
+    
+    # ALlow higher threshold just for PP (otherwise almost no DATA)
+    na_thresh <- ifelse(variable == "PrimaryProductivity", 40, noofNA)
+    
+    niskin_temp_store[[variable]] <- interpolateData(
+      niskin_ds_3, 
+      variable, 
+      depth_from=depth_from, 
+      depth_to=depth_to, 
+      noofNA=na_thresh,
+      output_type='integrated',
+      surface_fix=TRUE  # Enable surface fix for Niskin data
+    )
+    names(niskin_temp_store[[variable]])[1] <- variable
+  }
+  
+  # Process averaged variables
+  for (variable in vars_averaged) {
+    niskin_temp_store[[variable]] <- interpolateData(
+      niskin_ds_3, 
+      variable, 
+      depth_from=depth_from, 
+      depth_to=depth_to, 
+      noofNA=noofNA,
+      output_type='mean',
+      surface_fix=TRUE  # Enable surface fix for Niskin data
+    )
     names(niskin_temp_store[[variable]])[1] <- variable
   }
   
@@ -96,5 +122,24 @@ getNiskinIntDepth <- function(depth_from=0, depth_to=100, noofNA=40){
 
 niskin_ds_cleaned = getNiskinIntDepth()
 
+
 # Export and save data
 saveRDS(niskin_ds_cleaned, "data/processed/Niskin_qchecked_100m.RDS")
+
+# # check Primary Productivity values:
+# names(niskin_ds)
+# 
+# niskin_ds %>%
+#   filter(depth <= 110) %>%
+#   select(PrimaryProductivity, depth, date)
+# 
+# data = niskin_ds_cleaned$PrimaryProductivity * 365 * 12 * 100 /1000
+# mean_pp = mean(data, na.rm=T)
+# median_pp = median(data, na.rm=T)
+# sd_pp = sd(data, na.rm=T)
+# hist(data)
+# abline(v = mean_pp, col="blue")
+# abline(v = median_pp, col="red")
+# print(mean_pp)
+# print(sd_pp)
+

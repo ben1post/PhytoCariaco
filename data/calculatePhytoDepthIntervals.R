@@ -15,7 +15,8 @@ getPhytoInterpCounts <- function(depth_from=0, depth_to=100, noofNA=20){
   
   for (variable in phyto_Genus) {
     # interpolation algorithm: oce-rr
-    phyto_temp_store[[variable]] <- interpolateData(Mesh_phyInt_genus, variable, depth_from=depth_from, depth_to=depth_to, noofNA=noofNA, int_func='unesco')
+    phyto_temp_store[[variable]] <- interpolateData(Mesh_phyInt_genus, variable, depth_from=depth_from, depth_to=depth_to, noofNA=noofNA, int_func='unesco',
+                                                    output_type='integrated')
     names(phyto_temp_store[[variable]])[1] <- variable
   }
   
@@ -45,15 +46,17 @@ getPhytoInterpCounts <- function(depth_from=0, depth_to=100, noofNA=20){
 }
 
 # interpolate across 4 depth intervals:
-phyto_int_0 <- getPhytoInterpCounts(depth_from=0, depth_to=25, noofNA=5)
-phyto_int_1 <- getPhytoInterpCounts(depth_from=25, depth_to=50, noofNA=5)
-phyto_int_2 <- getPhytoInterpCounts(depth_from=50, depth_to=75, noofNA=5)
-phyto_int_3 <- getPhytoInterpCounts(depth_from=75, depth_to=100, noofNA=5)
+phyto_int_0 <- getPhytoInterpCounts(depth_from=0, depth_to=24, noofNA=5)   # captures 1, 7, 15m
+phyto_int_1 <- getPhytoInterpCounts(depth_from=25, depth_to=49, noofNA=5)  # captures 25m (sparse!)
+phyto_int_2 <- getPhytoInterpCounts(depth_from=50, depth_to=74, noofNA=5)  # captures 55m
+phyto_int_3 <- getPhytoInterpCounts(depth_from=75, depth_to=100, noofNA=5) # captures 75, 100m
+
 
 # combine into a single data frame
 Depth_Dat <- rbind(phyto_int_0,phyto_int_1,phyto_int_2,phyto_int_3)
 # convert depth to factor with correct level order
-Depth_Dat$depth <- factor(Depth_Dat$depth, levels=c("75-100","50-75","25-50", "0-25"))
+Depth_Dat$depth <- factor(Depth_Dat$depth, levels=c("75-100","50-74","25-49", "0-24"))
+levels(Depth_Dat$depth) <- c("75-100","50-75","25-50", "0-25")
 
 names(Depth_Dat)
 # convert date
