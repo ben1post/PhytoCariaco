@@ -1,6 +1,6 @@
 # PhytoCariaco: Phytoplankton Community Dynamics in the Cariaco Basin
 
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.16878343.svg)](https://doi.org/10.5281/zenodo.16878343)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.18942210.svg)](https://doi.org/10.5281/zenodo.18942210)
 
 This repository contains the R code used for the data analysis and figure generation presented in the manuscript:
 
@@ -143,7 +143,7 @@ The raw phytoplankton, CTD, and Niskin data originate from the **CARIACO Ocean T
 
 If you use or reference this code, please cite the associated Zenodo release:
 
-> Post et al. (2025). *PhytoCariaco* (v1.0). Zenodo. https://doi.org/10.5281/zenodo.16878343
+> Post et al. (2026). *PhytoCariaco* (v1.2). Zenodo. https://doi.org/10.5281/zenodo.18942210
 
 ---
 
