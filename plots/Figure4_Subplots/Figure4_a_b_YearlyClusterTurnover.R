@@ -170,14 +170,14 @@ cluster_colors <- c("Early Cluster 1" = "#2166AC",
                     "Cluster 2" = "#B2182B", 
                     "Late Cluster 1" = "#92C5DE")
 
-# Create plot
+# Create plot with ASCII hyphen instead of em-dash
 NMDS_plot_jac <- ggplot(nmds_scores_jac, aes(x = NMDS1, y = NMDS2)) +
   geom_point(aes(fill = cluster), shape = 21, size = 4, color = "black", stroke = 0.5) +
   geom_text(aes(label = year), vjust = -1, size = 3.5) +
   scale_fill_manual(values = cluster_colors) +
   theme_cowplot(font_size = 14) +
-  labs(title = paste("NMDS (Jaccard, presence/absence) — Stress:", round(nmds_jac$stress, 3)),
+  labs(title = paste("NMDS (Jaccard) - Stress:", round(nmds_jac$stress, 3)),
        fill = "Period") +
   theme(legend.position = "right")
 
-NMDS_plot_jac
+ggsave("plots/exports/Extra_JacNMDS_Yearly_v0.1.pdf", NMDS_plot_jac, width = 8, height = 6)

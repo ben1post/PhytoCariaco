@@ -176,7 +176,7 @@ CARIACO <- CARIACO %>%
     date = as.Date(paste(time_month, "-15", sep = ""), format = "%m-%Y-%d"),
     season = get_season_3cat(date),
     cluster = case_when(
-      (date >= as.Date("1996-01-01") & date <= as.Date("2003-12-31")) |
+     # (date >= as.Date("1996-01-01") & date <= as.Date("2003-12-31")) |
         (date >= as.Date("2014-01-01") & date <= as.Date("2016-12-31")) ~ "Cluster 1",
       (date >= as.Date("2004-01-01") & date <= as.Date("2013-12-31")) |
         (date >= as.Date("2017-06-01") & date <= as.Date("2017-12-31")) ~ "Cluster 2",

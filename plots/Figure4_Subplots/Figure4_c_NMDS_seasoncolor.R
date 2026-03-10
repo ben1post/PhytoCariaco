@@ -116,7 +116,7 @@ data.scores_2 = as.data.frame(scores(nmds)$sites)
 #add columns to data frame 
 data.scores_2$Year = format(Comp_Full_Matrix$date, "%Y")
 
- <- readRDS("plots/Figure4_Subplots/k_3.RDS")
+k_3 <- readRDS("plots/Figure4_Subplots/k_3.RDS")
 data.scores_2$cluster = as.character(k_3[data.scores_2$Year])
 
 head(data.scores_2)
@@ -125,7 +125,7 @@ options(repr.plot.width=10, repr.plot.height=10)
 
 library(ggrepel)
 
-colsvec <- c("2" = "blue", "1" = "red")
+#colsvec <- c("2" = "blue", "1" = "red")
 
 # Add season column using your function
 get_season_3cat <- function(dates) {
@@ -235,7 +235,7 @@ latex_table <- paste0(
   "interannual cluster and season on phytoplankton community composition. ",
   "Community data (genus-level cell counts) were cube-root transformed prior to analysis. ",
   "Bray--Curtis dissimilarity was used as the distance metric, with 999 permutations. ",
-  "Two observations (1995, 2017) were excluded due to missing cluster assignments ($n$ = 193). ",
+  "Observations from 1995 and 2017 were excluded due to missing cluster assignments ($n$ = 193). ",
   "Results shown are for cluster entered first; reversing term order yielded nearly identical ",
   "R\\textsuperscript{2} values (cluster: 17.9\\%, season: 3.5\\%), indicating minimal collinearity between factors.}\n",
   "\\label{sup:tab:permanova_season_cluster}\n",

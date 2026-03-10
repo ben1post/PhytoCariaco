@@ -1,8 +1,7 @@
 # =============================================================================
 # PHYTOPLANKTON COMMUNITY CLUSTERING ANALYSIS
-# Jaccard (presence/absence) and Bray-Curtis (abundance) comparison
+# Comparison of Jaccard vs Bray-Curtis, Complete vs Ward's method
 # =============================================================================
-
 library(tidyverse)
 library(vegan)
 library(dendextend)
@@ -11,10 +10,10 @@ library(cowplot)
 phyto_counts <- readRDS("data/processed/PhytoplanktonInterpolatedCounts.RDS")
 
 # =============================================================================
-# PART 1: JACCARD CLUSTERING (Presence/Absence)
+# PREPARE DATA
 # =============================================================================
 
-# Prepare data - sum counts per genus per year
+# Jaccard data (presence/absence) - use sum
 ds_jac <- phyto_counts %>%
   mutate(year = format(date, "%Y")) %>%
   filter(TaxonRank == "Genus" | TaxonRank == "Species") %>%
@@ -26,46 +25,7 @@ mat_jac <- pivot_wider(ds_jac, names_from = Genus, values_from = Total,
                        values_fn = function(x) sum(x, na.rm = TRUE), 
                        values_fill = 0.0)
 
-# Jaccard clustering
-jac <- vegdist(mat_jac[-1], method = "jaccard", binary = TRUE)
-jac_mat <- as.matrix(jac)
-colnames(jac_mat) <- mat_jac$year
-rownames(jac_mat) <- mat_jac$year
-
-hc_jac <- hclust(as.dist(jac_mat))
-dend_jac <- as.dendrogram(hc_jac)
-k_jac <- cutree(dend_jac, k = 3, order_clusters_as_data = FALSE)
-
-# Colors for Jaccard clusters
-cluster_cols <- c("1" = "#B2182B", "2" = "#92C5DE", "3" = "#2166AC")
-cols_jac <- cluster_cols[as.character(k_jac[mat_jac$year])]
-
-# Plot Jaccard dendrogram
-dend_jac_styled <- dend_jac %>%
-  set("labels_cex", 1.) %>%
-  hang.dendrogram(hang_height = 0.1) %>%
-  set("leaves_pch", 19) %>%
-  set("leaves_col", cols_jac, order_value = TRUE) %>%
-  set("leaves_bg", cols_jac, order_value = TRUE) %>%
-  set("branches_lwd", 0.5)
-
-plot_jac <- ggplot(dend_jac_styled, horiz = FALSE, offset_labels = -0.03) +
-  theme_cowplot(font_size = 20) +
-  ylab("Height (Jaccard)") +
-  theme(
-    axis.title.x = element_blank(),
-    strip.clip = "off"
-  ) +
-  scale_y_continuous(limits = c(0., 0.7)) +
-  scale_x_reverse()
-
-print(plot_jac)
-
-# =============================================================================
-# PART 2: BRAY-CURTIS CLUSTERING (Abundance-based)
-# =============================================================================
-
-# Prepare data - use MEAN to account for variable months sampled per year
+# Bray-Curtis data (abundance) - use mean, then cube-root transform
 ds_bc <- phyto_counts %>%
   mutate(year = format(date, "%Y")) %>%
   filter(TaxonRank == "Genus" | TaxonRank == "Species") %>%
@@ -77,256 +37,170 @@ mat_bc <- pivot_wider(ds_bc, names_from = Genus, values_from = MeanCount,
                       values_fn = function(x) mean(x, na.rm = TRUE), 
                       values_fill = 0.0)
 
-# Hellinger transformation
-mat_bc_transformed <- decostand(mat_bc[-1], method = "hellinger")
+# Cube-root transformation for Bray-Curtis
+mat_bc_transformed <- mat_bc
+mat_bc_transformed[-1] <- (mat_bc[-1])^(1/3)
 
-# Bray-Curtis clustering
-bc <- vegdist(mat_bc_transformed, method = "bray")
-bc_mat <- as.matrix(bc)
+# =============================================================================
+# CALCULATE DISTANCE MATRICES
+# =============================================================================
+
+# Jaccard distance
+jac_dist <- vegdist(mat_jac[-1], method = "jaccard", binary = TRUE)
+jac_mat <- as.matrix(jac_dist)
+colnames(jac_mat) <- mat_jac$year
+rownames(jac_mat) <- mat_jac$year
+
+# Bray-Curtis distance
+bc_dist <- vegdist(mat_bc_transformed[-1], method = "bray")
+bc_mat <- as.matrix(bc_dist)
 colnames(bc_mat) <- mat_bc$year
 rownames(bc_mat) <- mat_bc$year
 
-hc_bc <- hclust(as.dist(bc_mat))
-dend_bc <- as.dendrogram(hc_bc)
-k_bc <- cutree(dend_bc, k = 3, order_clusters_as_data = FALSE)
+# =============================================================================
+# GET REFERENCE CLUSTER ASSIGNMENTS (Jaccard + Complete linkage)
+# =============================================================================
+hc_reference <- hclust(as.dist(jac_mat), method = "complete")
+dend_reference <- as.dendrogram(hc_reference)
+k_3_reference <- cutree(dend_reference, k = 3, order_clusters_as_data = FALSE)
 
-# Use Jaccard colors for comparison
-cols_bc <- cols_jac
-
-# Plot Bray-Curtis dendrogram
-dend_bc_styled <- dend_bc %>%
-  set("labels_cex", 1.) %>%
-  hang.dendrogram(hang_height = 0.1) %>%
-  set("leaves_pch", 19) %>%
-  set("leaves_col", cols_bc, order_value = TRUE) %>%
-  set("leaves_bg", cols_bc, order_value = TRUE) %>%
-  set("branches_lwd", 0.5)
-
-plot_bc <- ggplot(dend_bc_styled, horiz = FALSE, offset_labels = -0.03) +
-  theme_cowplot(font_size = 20) +
-  ylab("Height (Bray-Curtis)") +
-  theme(
-    axis.title.x = element_blank(),
-    strip.clip = "off"
-  ) +
-  scale_y_continuous(limits = c(0., 0.8)) +
-  scale_x_reverse()
-
-print(plot_bc)
+# Color mapping:
+# cutree 1 = Cluster 2 (dark red)
+# cutree 2 = Late Cluster 1 (light blue)
+# cutree 3 = Early Cluster 1 (dark blue)
+nm2 <- c("1" = "#B2182B", "2" = "#92C5DE", "3" = "#2166AC")
 
 # =============================================================================
-# PART 3: COMPARE DISTANCE MATRICES
+# FUNCTION TO CREATE DENDROGRAM WITH CONSISTENT COLORING
 # =============================================================================
-
-# Mantel test
-mantel_result <- mantel(jac, bc, method = "spearman")
-print(mantel_result)
-
-# Heatmaps
-par(mfrow = c(1, 2))
-heatmap(as.matrix(jac), main = "Jaccard", symm = TRUE)
-heatmap(as.matrix(bc), main = "Bray-Curtis", symm = TRUE)
-par(mfrow = c(1, 1))
-
-# =============================================================================
-# PART 4: RICHNESS VS ABUNDANCE COMPARISON
-# =============================================================================
-
-yearly_summary <- phyto_counts %>%
-  mutate(year = as.numeric(format(date, "%Y"))) %>%
-  filter(TaxonRank == "Genus" | TaxonRank == "Species") %>%
-  filter(year >= 1996 & year <= 2016) %>%
-  filter(counts > 0) %>%
-  group_by(year) %>%
-  summarise(
-    richness = n_distinct(Genus),
-    total_abundance = sum(counts, na.rm = TRUE),
-    .groups = "drop"
-  ) %>%
-  mutate(
-    richness_scaled = (richness - mean(richness)) / sd(richness),
-    abundance_scaled = (total_abundance - mean(total_abundance)) / sd(total_abundance)
-  ) %>%
-  pivot_longer(cols = c(richness_scaled, abundance_scaled), 
-               names_to = "metric", values_to = "value")
-
-plot_richness_abundance <- ggplot(yearly_summary, aes(x = year, y = value, color = metric)) +
-  geom_line(linewidth = 1) +
-  geom_point(size = 2) +
-  scale_color_manual(values = c("richness_scaled" = "darkgreen", "abundance_scaled" = "purple"),
-                     labels = c("Abundance (scaled)", "Richness (scaled)")) +
-  theme_cowplot() +
-  labs(y = "Z-score", x = "Year", color = "")
-
-print(plot_richness_abundance)
-
-# =============================================================================
-# PART 5: TAXA SUMMARY
-# =============================================================================
-
-taxa_summary <- ds_jac %>%
-  group_by(Genus) %>%
-  summarise(
-    occurrence = n_distinct(year),
-    mean_abundance = mean(Total, na.rm = TRUE),
-    .groups = "drop"
-  ) %>%
-  mutate(
-    type = case_when(
-      occurrence > 15 & mean_abundance > median(mean_abundance) ~ "Core dominant",
-      occurrence > 15 ~ "Core rare",
-      mean_abundance > median(mean_abundance) ~ "Sporadic dominant",
-      TRUE ~ "Sporadic rare"
-    )
-  )
-
-print(table(taxa_summary$type))
-
-# =============================================================================
-# PART 6: PERMANOVA
-# =============================================================================
-
-# --- PERMANOVA for Jaccard (3 clusters) ---
-cluster_groups_jac <- factor(k_jac[mat_jac$year])
-
-set.seed(42)
-permanova_jac <- adonis2(
-  mat_jac[-1] ~ cluster_groups_jac,
-  method = "jaccard",
-  binary = TRUE,
-  permutations = 999
-)
-cat("\n=== PERMANOVA: Jaccard (3 clusters) ===\n")
-print(permanova_jac)
-
-# Test homogeneity of dispersion
-betadisper_jac <- betadisper(jac, cluster_groups_jac)
-betadisper_jac_test <- permutest(betadisper_jac, permutations = 999)
-cat("\n=== Dispersion test: Jaccard ===\n")
-print(betadisper_jac_test)
-
-# --- PERMANOVA for Bray-Curtis (3 clusters) ---
-cluster_groups_bc <- factor(k_bc[mat_bc$year])
-
-set.seed(42)
-permanova_bc <- adonis2(
-  mat_bc_transformed ~ cluster_groups_bc,
-  method = "bray",
-  permutations = 999
-)
-cat("\n=== PERMANOVA: Bray-Curtis (3 clusters) ===\n")
-print(permanova_bc)
-
-# Test homogeneity of dispersion
-betadisper_bc <- betadisper(bc, cluster_groups_bc)
-betadisper_bc_test <- permutest(betadisper_bc, permutations = 999)
-cat("\n=== Dispersion test: Bray-Curtis ===\n")
-print(betadisper_bc_test)
-
-# =============================================================================
-# PART 7: SIMPER ANALYSIS
-# =============================================================================
-
-# Run SIMPER for Bray-Curtis clusters
-simper_bc <- simper(mat_bc_transformed, group = k_bc, permutations = 999)
-
-cat("\n=== SIMPER Summary ===\n")
-summary(simper_bc)
-
-# --- Function to summarize SIMPER results (CORRECTED) ---
-summarize_simper <- function(simper_obj, p_threshold = 0.05) {
+create_dend_plot <- function(dist_matrix, method, k_3_reference, color_map, y_limit = 0.75) {
   
-  comparisons <- names(simper_obj)
   
-  results_list <- lapply(comparisons, function(comp) {
-    sim <- simper_obj[[comp]]
-    
-    # Use names() instead of rownames() - sim$average is a named vector
-    df <- data.frame(
-      Genus = names(sim$average),
-      Comparison = comp,
-      Contribution = as.numeric(sim$average),
-      SD = as.numeric(sim$sd),
-      Ratio = as.numeric(sim$average / sim$sd),
-      Abund_GroupA = as.numeric(sim$ava),
-      Abund_GroupB = as.numeric(sim$avb),
-      Cumsum = as.numeric(sim$cusum),
-      p_value = as.numeric(sim$p),
-      row.names = NULL,
-      stringsAsFactors = FALSE
-    )
-    
-    # Determine which group the taxon indicates
-    groups <- strsplit(comp, "_")[[1]]
-    df$Indicates <- ifelse(df$Abund_GroupA > df$Abund_GroupB, groups[1], groups[2])
-    
-    # Fold difference
-    df$FoldDiff <- pmax(df$Abund_GroupA, df$Abund_GroupB) / 
-      pmax(pmin(df$Abund_GroupA, df$Abund_GroupB), 0.001)
-    
-    return(df)
-  })
+  # Hierarchical clustering with specified method
+  hc <- hclust(dist_matrix, method = method)
+  dend <- as.dendrogram(hc)
   
-  results_df <- do.call(rbind, results_list)
+  # Get the order of leaves in the dendrogram
+  leaf_order <- labels(dend)
   
-  # Significant indicators
-  sig_indicators <- results_df %>%
-    filter(p_value <= p_threshold) %>%
-    arrange(Comparison, desc(Contribution))
+  # Create color vector in dendrogram leaf order
+  cols_ordered <- color_map[as.character(k_3_reference[leaf_order])]
   
-  return(list(
-    all_results = results_df,
-    significant = sig_indicators
-  ))
+  # Style the dendrogram
+  dend_styled <- dend %>%
+    set("labels_cex", 0.8) %>%
+    hang.dendrogram(hang_height = 0.1) %>% 
+    set("leaves_pch", 19) %>% 
+    set("leaves_col", cols_ordered) %>% 
+    set("leaves_cex", 1.5) %>%
+    set("branches_lwd", 0.5)
+  
+  # Create ggplot (no individual titles)
+  p <- ggplot(dend_styled, horiz = FALSE, offset_labels = -0.03) + 
+    theme_cowplot(font_size = 12) + 
+    theme(axis.title.x = element_blank(),
+          axis.text.x = element_blank(),
+          axis.ticks.x = element_blank(),
+          axis.line.x = element_blank(),
+          axis.title.y = element_blank(),
+          axis.text.y = element_blank(),
+          axis.ticks.y = element_blank(),
+          axis.line.y = element_blank()
+    ) + 
+    scale_y_continuous(limits = c(0., y_limit)) + 
+    scale_x_reverse()
+  
+  return(p)
 }
 
-# Re-run with corrected function
-simper_summary <- summarize_simper(simper_bc, p_threshold = 0.05)
+# =============================================================================
+# CREATE ALL FOUR DENDROGRAM PLOTS
+# =============================================================================
 
-cat("\n=== Significant Indicator Taxa (p <= 0.05) ===\n")
-print(simper_summary$significant %>% 
-        select(Comparison, Genus, Indicates, Contribution, Ratio, 
-               Abund_GroupA, Abund_GroupB, p_value) %>%
-        group_by(Comparison) %>%
-        slice_head(n = 10),
-      n = 10)
+# A: Jaccard + Complete
+plot_jac_complete <- create_dend_plot(
+  as.dist(jac_mat), "complete", k_3_reference, nm2, y_limit = 0.75
+)
 
-# --- Summary table: Top indicators per cluster ---
-create_cluster_indicator_table <- function(simper_summary, k_clusters) {
-  
-  cluster_names <- sort(unique(k_clusters))
-  
-  summary_list <- lapply(cluster_names, function(clust) {
-    
-    indicators <- simper_summary$significant %>%
-      filter(Indicates == as.character(clust)) %>%
-      group_by(Genus) %>%
-      summarise(
-        mean_contribution = mean(Contribution),
-        mean_abundance = mean(pmax(Abund_GroupA, Abund_GroupB)),
-        n_comparisons_significant = n(),
-        mean_ratio = mean(Ratio, na.rm = TRUE),
-        min_p = min(p_value),
-        .groups = "drop"
-      ) %>%
-      arrange(desc(mean_contribution)) %>%
-      slice_head(n = 10)
-    
-    indicators$Cluster <- clust
-    return(indicators)
-  })
-  
-  do.call(rbind, summary_list)
-}
+# B: Jaccard + Ward's method
+plot_jac_ward <- create_dend_plot(
+  as.dist(jac_mat), "ward.D2", k_3_reference, nm2, y_limit = 1.25
+)
 
-cluster_indicators <- create_cluster_indicator_table(simper_summary, k_bc)
+# C: Bray-Curtis + Complete
+plot_bc_complete <- create_dend_plot(
+  as.dist(bc_mat), "complete", k_3_reference, nm2, y_limit = 0.85
+)
 
-cat("\n=== Top Indicator Taxa per Cluster ===\n")
-print(cluster_indicators %>% 
-        select(Cluster, Genus, mean_contribution, mean_abundance, 
-               n_comparisons_significant, mean_ratio, min_p) %>%
-        arrange(Cluster, desc(mean_contribution)),
-      n = 30)
+# D: Bray-Curtis + Ward's method
+plot_bc_ward <- create_dend_plot(
+  as.dist(bc_mat), "ward.D2", k_3_reference, nm2, y_limit = 1.55
+)
 
+# =============================================================================
+# CREATE COLUMN HEADERS (Linkage methods)
+# =============================================================================
+header_complete <- ggdraw() + 
+  draw_label("Complete linkage", fontface = "bold", size = 12, hjust = 0.5)
 
+header_ward <- ggdraw() + 
+  draw_label("Ward's method", fontface = "bold", size = 12, hjust = 0.5)
 
+# =============================================================================
+# CREATE ROW LABELS (Distance metrics)
+# =============================================================================
+label_jaccard <- ggdraw() + 
+  draw_label("Jaccard", fontface = "bold", size = 12, angle = 90, hjust = 0.5)
+
+label_braycurtis <- ggdraw() + 
+  draw_label("Bray-Curtis", fontface = "bold", size = 12, angle = 90, hjust = 0.5)
+
+# =============================================================================
+# ASSEMBLE THE GRID
+# =============================================================================
+
+# Create the 2x2 grid of dendrograms
+dend_grid <- plot_grid(
+  plot_jac_complete, plot_jac_ward,
+  plot_bc_complete, plot_bc_ward,
+  ncol = 2, nrow = 2,
+  labels = c("A", "B", "C", "D"),
+  label_size = 14
+)
+
+# Add column headers
+header_row <- plot_grid(
+  NULL, header_complete, header_ward,
+  ncol = 3, rel_widths = c(0.08, 1, 1)
+)
+
+# Add row labels to the dendrogram grid
+dend_with_row_labels <- plot_grid(
+  label_jaccard, 
+  plot_grid(plot_jac_complete, plot_jac_ward, ncol = 2, labels = c("A", "B"), label_size = 14),
+  label_braycurtis, 
+  plot_grid(plot_bc_complete, plot_bc_ward, ncol = 2, labels = c("C", "D"), label_size = 14),
+  ncol = 2, nrow = 2,
+  rel_widths = c(0.08, 1),
+  rel_heights = c(1, 1)
+)
+
+# Combine header row with the main grid
+combined_plot <- plot_grid(
+  header_row,
+  dend_with_row_labels,
+  ncol = 1,
+  rel_heights = c(0.06, 1)
+)
+
+# Add overall title
+combined_plot_titled <- ggdraw() +
+  draw_label("Comparison of distance metrics and linkage methods", 
+             x = 0.5, y = 0.98, hjust = 0.5, vjust = 1, size = 14, fontface = "bold") +
+  draw_plot(combined_plot, x = 0, y = 0, width = 1, height = 0.94)
+
+combined_plot_titled
+
+# Save
+ggsave("plots/exports/Supplemental_ClusteringComparison.pdf", combined_plot_titled, 
+       width = 8, height = 6)
