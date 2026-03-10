@@ -143,7 +143,7 @@ The raw phytoplankton, CTD, and Niskin data originate from the **CARIACO Ocean T
 
 If you use or reference this code, please cite the associated Zenodo release:
 
-> Post et al. (2026). *PhytoCariaco* (v1.2). Zenodo. https://doi.org/10.5281/zenodo.18942210
+> Post, B. (2026). *PhytoCariaco* (v1.2). Zenodo. https://doi.org/10.5281/zenodo.18942210
 
 ---
 
